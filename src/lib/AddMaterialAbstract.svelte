@@ -1,0 +1,114 @@
+<script lang="ts">
+  import { Button } from '$lib/components/ui/button';
+  import { Input } from '$lib/components/ui/input';
+  import { Label } from '$lib/components/ui/label';
+  import FragranceWheel from '$lib/FragranceWheel.svelte';
+  import { CircleQuestionMark, RefreshCw } from '@lucide/svelte';
+  import * as HoverCard from '$lib/components/ui/hover-card/index.js';
+  import type { MaterialAbstractAdd } from './types';
+  import MultiInput from './components/MultiInput.svelte';
+  import * as Select from './components/ui/select';
+  import { MATERIAL_TYPES, materialType } from './materials.svelte';
+
+  let {
+    state = $bindable(),
+    onSubmit
+  }: { state: MaterialAbstractAdd; onSubmit: (state: MaterialAbstractAdd) => void } = $props();
+</script>
+
+<div class="m-2 flex flex-wrap items-center justify-center gap-1 rounded-md border p-2">
+  <div class="grid w-full max-w-lg items-center">
+    <Label for="name" class="text-xs">Name</Label>
+    <Input id="name" bind:value={state.name} placeholder="Patchouli EO" />
+  </div>
+
+  <div class="grid w-full max-w-lg items-center">
+    <Label for="type" class="text-xs">Type</Label>
+    <Select.Root type="single" bind:value={state.type}>
+      <Select.Trigger class="w-full text-center">
+        {materialType(state.type)}
+      </Select.Trigger>
+      <Select.Content>
+        {#each MATERIAL_TYPES as type}
+          <Select.Item value={type} label={type}>
+            {materialType(type)}
+          </Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
+  </div>
+
+  <div class="grid w-full max-w-lg items-center">
+    <Label for="note" class="text-xs">Description</Label>
+    <textarea
+      id="note"
+      bind:value={state.description}
+      placeholder="The material that started it all (optional)"
+      class="flex w-full min-w-0 rounded-md border border-input bg-transparent px-3 pt-1.5 text-sm font-medium shadow-xs ring-offset-background transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[1px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
+    ></textarea>
+  </div>
+
+  <div class="grid w-full max-w-lg items-center">
+    <Label for="tags" class="text-xs">Tags</Label>
+    <MultiInput bind:container={state.tags} input={state.tagInput} placeholder="Woody (optional)" />
+  </div>
+
+  <div class="grid w-full max-w-lg items-center">
+    <div class="flex items-center">
+      <Label for="category" class="mr-1 text-xs">Family</Label>
+
+      <HoverCard.Root openDelay={200} closeDelay={200}>
+        <HoverCard.Trigger>
+          <CircleQuestionMark size={14} />
+        </HoverCard.Trigger>
+        <HoverCard.Content side="right" class="w-full">
+          <FragranceWheel />
+        </HoverCard.Content>
+      </HoverCard.Root>
+    </div>
+
+    <Input
+      id="category"
+      bind:value={state.family}
+      placeholder="Fresh / Woody / Amber / Floral (optional)"
+    />
+  </div>
+
+  {#if state.family}
+    <div class="grid w-full max-w-lg items-center">
+      <Label for="subfamily" class="text-xs">Subfamily</Label>
+      <Input
+        id="subfamily"
+        bind:value={state.subfamily}
+        placeholder="Citrus / Mossy Woods / Soft Amber (optional)"
+      />
+    </div>
+  {/if}
+
+  <div class="grid w-full max-w-lg items-center">
+    <Label for="cas" class="text-xs">CAS number</Label>
+    <Input id="cas" bind:value={state.cas} placeholder="123-45-6 (optional)" />
+  </div>
+
+  <div class="grid w-full max-w-lg items-center">
+    <Label for="link" class="text-xs">Links</Label>
+    <MultiInput
+      bind:container={state.links}
+      input={state.linkInput}
+      placeholder="https://fraterworks.com (optional)"
+    />
+  </div>
+
+  <div class="mx-auto flex w-full justify-center gap-2 py-2">
+    <Button class="w-32" type="button" variant="secondary" onclick={state.reset}
+      ><RefreshCw /></Button
+    >
+    <Button
+      onclick={() => {
+        onSubmit(state);
+      }}
+      class="w-32"
+      type="submit">Add</Button
+    >
+  </div>
+</div>
