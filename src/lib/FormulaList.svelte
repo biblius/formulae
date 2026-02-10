@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { Trash } from '@lucide/svelte';
+  import { Check, X } from '@lucide/svelte';
   import { Button } from '$lib/components/ui/button';
-  import { deleteFormulaNote, insertFormulaNote } from './formula.svelte';
-  import type { Formula } from './types';
-
-  const { formulae } = $props<{ formulae: Formula[] }>();
+  import { formulae, insertFormulaNote } from './formula.svelte';
+  import { materials } from './materials.svelte';
+  import { gf, pf } from './utils';
+  import FormulaNote from './FormulaNote.svelte';
 
   let openId = $state<number | null>(null);
 
@@ -29,20 +29,17 @@
 
   async function saveNote(id: number) {
     const content = noteDrafts[id]?.trim();
+
     if (!content) return;
 
     await insertFormulaNote(id, content);
 
     cancelAddNote(id);
   }
-
-  async function deleteNote(formulaId: number, id: number) {
-    await deleteFormulaNote(formulaId, id);
-  }
 </script>
 
 <ul class="divide-y rounded-md border">
-  {#each formulae as formula}
+  {#each formulae.formulae as formula}
     <li>
       <!-- HEADER -->
 
@@ -65,56 +62,94 @@
       </button>
 
       {#if openId === formula.id}
-        <div class="px-4 pb-4">
-          <!-- Materials table -->
-          <table class="w-full border-collapse border text-sm">
-            <thead>
-              <tr class="border-b text-left">
-                <th class="py-1 pr-2 font-medium">Material</th>
-                <th class="py-1 pr-2 text-right font-medium">Grams</th>
-              </tr>
-            </thead>
-            <tbody>
-              {#each formula.materials as material}
-                <tr class="border-b last:border-b-0">
-                  <td class="py-1 pr-2">{material.material_id}</td>
-                  <td class="py-1 pr-2 text-right tabular-nums">
-                    {material.grams}
-                  </td>
+        <div class="">
+          <div class="m-2 w-full">
+            <table class="mx-auto w-2/3 border-collapse text-sm">
+              <!-- HEADER -->
+
+              <thead>
+                <tr class="border text-muted-foreground">
+                  <th class="p-2 pr-2 font-medium">Material</th>
+                  <th class="p-2 pr-2 font-medium">Type</th>
+                  <th class="p-2 pr-2 font-medium">Amount</th>
+                  <th class="p-2 pr-2 font-medium">% material</th>
+                  <th class="p-2 pr-2 font-medium">% total</th>
                 </tr>
-              {/each}
-            </tbody>
-          </table>
+              </thead>
+
+              <!-- BODY -->
+
+              <tbody>
+                {#each formula.materials as material}
+                  <tr class="border">
+                    <td class="p-2 pr-2">{materials.get(material.material_id)?.name}</td>
+                    <td class="p-2 pr-2">{materials.get(material.material_id)?.type}</td>
+                    <td class="p-2 pr-2 tabular-nums">
+                      {gf.format(material.grams)}
+                    </td>
+                    <td class="p-2 pr-2"
+                      >{pf.format(
+                        material.grams / formula.materials.reduce((acc, m) => acc + m.grams, 0)
+                      )}</td
+                    >
+                    <td class="p-2 pr-2">{pf.format(material.grams / formula.grams_total)}</td>
+                  </tr>
+                {/each}
+
+                <tr class="border-b text-muted-foreground">
+                  <td class="p-2">Solvent</td>
+                  <td class="p-2">-</td>
+                  <td class="p-2"
+                    >{gf.format(
+                      formula.grams_total - formula.materials.reduce((acc, m) => acc + m.grams, 0)
+                    )}</td
+                  >
+                  <td class="p-2">-</td>
+                  <td class="p-2"
+                    >{pf.format(
+                      (formula.grams_total -
+                        formula.materials.reduce((acc, m) => acc + m.grams, 0)) /
+                        formula.grams_total
+                    )}</td
+                  >
+                </tr>
+              </tbody>
+
+              <!-- FOOTER -->
+
+              <tfoot>
+                <tr class="p-2 font-bold">
+                  <td class="p-2 pr-2">Total</td>
+                  <td class="p-2 pr-2">-</td>
+                  <td class="p-2 pr-2 tabular-nums">
+                    {gf.format(formula.grams_total)}
+                  </td>
+                  <td class="p-2 pr-2"
+                    >{pf.format(
+                      formula.materials.reduce((acc, m) => acc + m.grams, 0) / formula.grams_total
+                    )}</td
+                  >
+                  <td class="p-2 pr-2">{pf.format(1)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
 
           <!-- Notes -->
 
-          <div class="mt-3 text-sm">
-            <div class="mb-1 flex items-center justify-between">
+          <div class="flex w-full flex-wrap justify-center text-sm">
+            <div class="w-full text-center">
               <span class="text-muted-foreground">Notes</span>
             </div>
 
-            {#if formula.notes.length > 0}
-              <ul class="list-disc space-y-1 pl-5 text-muted-foreground">
-                {#each formula.notes as note}
-                  <li class="flex items-center gap-4">
-                    <Button
-                      class="hover:text-destructive"
-                      size="icon-sm"
-                      variant="ghost"
-                      onclick={() => deleteNote(formula.id, note.id)}><Trash /></Button
-                    >
-                    <div class="m-1 p-2">
-                      <p class="border-b font-bold">{note.created_at}</p>
-                      <p>{note.content}</p>
-                    </div>
-                  </li>
-                {/each}
-              </ul>
-            {/if}
+            <div class="max-auto max-h-96 min-h-0 w-2/3 overflow-scroll">
+              {#each formula.notes as _, i}
+                <FormulaNote bind:note={formula.notes[i]} />
+              {/each}
+            </div>
 
-            <!-- Add note textarea -->
             {#if addingNoteFor.has(formula.id)}
-              <div class="mt-2 space-y-2">
+              <div class="m-2 flex w-1/2 flex-wrap justify-center">
                 <textarea
                   class="w-full resize-y rounded-md border p-2 text-sm"
                   rows="3"
@@ -122,31 +157,27 @@
                   bind:value={noteDrafts[formula.id]}
                 ></textarea>
 
-                <div class="flex gap-2">
-                  <button
-                    class="rounded-md border px-2 py-1 text-sm hover:bg-muted"
-                    onclick={() => saveNote(formula.id)}
+                <div class="flex gap-2 p-2">
+                  <Button size="icon-sm" onclick={() => saveNote(formula.id)}><Check /></Button>
+                  <Button
+                    size="icon-sm"
+                    variant="destructive"
+                    onclick={() => cancelAddNote(formula.id)}><X /></Button
                   >
-                    Save
-                  </button>
-
-                  <button
-                    class="px-2 py-1 text-sm text-muted-foreground hover:underline"
-                    onclick={() => cancelAddNote(formula.id)}
-                  >
-                    Cancel
-                  </button>
                 </div>
               </div>
             {/if}
 
             {#if !addingNoteFor.has(formula.id)}
-              <button
-                class="text-xs text-muted-foreground underline hover:text-foreground"
-                onclick={() => startAddNote(formula.id)}
-              >
-                Add note
-              </button>
+              <div class="flex w-full justify-center">
+                <Button
+                  variant="ghost"
+                  class="m-2 text-xs underline hover:text-foreground"
+                  onclick={() => startAddNote(formula.id)}
+                >
+                  Add note
+                </Button>
+              </div>
             {/if}
           </div>
         </div>

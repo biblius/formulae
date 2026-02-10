@@ -1,4 +1,5 @@
 import { db, insertValues } from './db';
+import { spendMaterials } from './materials.svelte';
 import type { Formula, FormulaBuilder, FormulaMaterial, FormulaNote } from './types';
 
 export type FormulaState = {
@@ -37,24 +38,7 @@ export async function insertFormula(state: FormulaBuilder): Promise<Formula> {
     state.materials.map((material) => [material.original.id, formulaId!!, material.grams])
   );
 
-  await insertValues(
-    'material_history',
-    ['material_id', 'target_id', 'target_type', 'grams'],
-    state.materials.map((material) => [
-      material.original.id,
-      formulaId!!,
-      'FORMULA',
-      material.grams
-    ])
-  );
-
-  for (const material of state.materials) {
-    await _db.execute(`UPDATE materials SET grams_available = grams_available - $1 WHERE id = $2`, [
-      material.grams,
-      material.original.id
-    ]);
-    material.original.grams_available -= material.grams;
-  }
+  await spendMaterials('FORMULA', formulaId!!, state.materials);
 
   const formula = await getFormula(formulaId!!);
 
@@ -88,6 +72,17 @@ export async function insertFormulaNote(formulaId: number, content: string): Pro
   return note[0];
 }
 
+export async function updateFormulaNote(noteId: number, content: string) {
+  const _db = await db();
+
+  await _db.execute(
+    `
+      UPDATE formula_notes SET content = $1 WHERE id = $2
+    `,
+    [content, noteId]
+  );
+}
+
 export async function deleteFormulaNote(formulaId: number, noteId: number): Promise<void> {
   const _db = await db();
   await _db.execute(`DELETE FROM formula_notes WHERE id = $1`, [noteId]);
@@ -109,6 +104,7 @@ export async function listFormulae(): Promise<Formula[]> {
         grams_total,
         created_at
        FROM formulae 
+       ORDER BY created_at DESC
       `
   );
 
@@ -125,6 +121,7 @@ export async function listFormulae(): Promise<Formula[]> {
       `
       SELECT id, formula_id, content, created_at FROM formula_notes
       WHERE formula_id = $1
+      ORDER BY created_at DESC
     `,
       [formula.id]
     );
@@ -161,6 +158,7 @@ export async function getFormula(id: number): Promise<Formula> {
     `
       SELECT id, formula_id, content, created_at FROM formula_notes
       WHERE formula_id = $1
+      ORDER BY created_at DESC
     `,
     [id]
   );

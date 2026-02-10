@@ -8,12 +8,49 @@
   import type { MaterialAbstractAdd } from './types';
   import MultiInput from './components/MultiInput.svelte';
   import * as Select from './components/ui/select';
-  import { MATERIAL_TYPES, materialType } from './materials.svelte';
+  import { insertMaterialAbstract, MATERIAL_TYPES, materialType } from './materials.svelte';
 
-  let {
-    state = $bindable(),
-    onSubmit
-  }: { state: MaterialAbstractAdd; onSubmit: (state: MaterialAbstractAdd) => void } = $props();
+  let state: MaterialAbstractAdd = $state<MaterialAbstractAdd>({
+    name: null,
+    type: 'EO',
+    description: null,
+    family: null,
+    subfamily: null,
+    cas: null,
+    linkInput: '',
+    links: [],
+    tagInput: '',
+    tags: [],
+
+    reset() {
+      this.name = null;
+      this.type = 'EO';
+      this.description = null;
+      this.family = null;
+      this.subfamily = null;
+      this.cas = null;
+      this.links = [];
+      this.linkInput = '';
+      this.tagInput = '';
+      this.tags = [];
+    }
+  });
+
+  async function createMaterialAbstract() {
+    if (state.name == null) {
+      console.warn('no name');
+      return;
+    }
+
+    if (state.type == null) {
+      console.warn('no type');
+      return;
+    }
+
+    await insertMaterialAbstract(state);
+
+    state.reset();
+  }
 </script>
 
 <div class="m-2 flex flex-wrap items-center justify-center gap-1 rounded-md border p-2">
@@ -100,15 +137,9 @@
   </div>
 
   <div class="mx-auto flex w-full justify-center gap-2 py-2">
-    <Button class="w-32" type="button" variant="secondary" onclick={state.reset}
+    <Button class="w-32" type="button" variant="secondary" onclick={() => state.reset()}
       ><RefreshCw /></Button
     >
-    <Button
-      onclick={() => {
-        onSubmit(state);
-      }}
-      class="w-32"
-      type="submit">Add</Button
-    >
+    <Button onclick={() => createMaterialAbstract()} class="w-32" type="submit">Add</Button>
   </div>
 </div>

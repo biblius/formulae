@@ -1,4 +1,4 @@
-import { DateFormatter } from '@internationalized/date';
+import { DateFormatter, type DateValue } from '@internationalized/date';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -31,3 +31,7 @@ export const pf = new Intl.NumberFormat('en-US', {
   style: 'percent',
   minimumFractionDigits: 2
 });
+
+export function date(value: DateValue): string {
+  return value.toString().replace('T', ' ').slice(0, 19);
+}

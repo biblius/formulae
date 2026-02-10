@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { Button } from '$lib/components/ui/button';
-  import { Check, X } from '@lucide/svelte';
   import { tick } from 'svelte';
 
   let {
@@ -51,7 +49,7 @@
     editing = false;
   }
 
-  function clickOutsideCancel(node: HTMLElement) {
+  function clickOutsideSave(node: HTMLElement) {
     const onPointerDown = (event: PointerEvent) => {
       if (!node.contains(event.target as Node)) {
         if (node === document.activeElement || node.contains(document.activeElement)) {
@@ -75,7 +73,7 @@
 {#if editing}
   <input
     class="mx-auto max-w-16"
-    use:clickOutsideCancel
+    use:clickOutsideSave
     bind:this={inputRef}
     bind:value
     type="number"

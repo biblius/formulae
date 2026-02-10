@@ -27,9 +27,7 @@ CREATE TABLE materials_abstract(
 CREATE TABLE material_tags(
   material_id INTEGER NOT NULL,
   value TEXT NOT NULL,
-  -- Display purposes
-  color TEXT,
-  FOREIGN KEY (material_id) REFERENCES materials_abstract(id)
+  FOREIGN KEY (material_id) REFERENCES materials_abstract(id) ON DELETE CASCADE
 );
 
 -- Links to materials
@@ -43,18 +41,25 @@ CREATE TABLE material_links(
 CREATE TABLE materials(
   id INTEGER PRIMARY KEY,
   material_id INTEGER,
-  -- RAW / PREDILUTION
+  instance_id INTEGER,
+  -- PURE / DILUTION
   type TEXT NOT NULL,
   name TEXT,
   manufacturer TEXT,
   batch_id TEXT,
   link TEXT,
+
+  -- Always present and refers to totals
   grams_available REAL NOT NULL,
   grams_initial REAL NOT NULL,
-  -- Only present when type == PREDILUTION
-  predilution REAL,
+
+  -- Only present when type == DILUTION
+  grams_material REAL,
+  grams_solvent REAL,
+
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (material_id) REFERENCES materials_abstract(id) ON DELETE CASCADE
+  FOREIGN KEY (material_id) REFERENCES materials_abstract(id) ON DELETE CASCADE,
+  FOREIGN KEY (instance_id) REFERENCES materials(id) ON DELETE CASCADE
 );
 
 -- Recipes for combinations of materials

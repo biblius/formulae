@@ -1,4 +1,4 @@
-<table class="table-auto bg-secondary" style="text-align:center">
+<table class="table-fixed border-collapse bg-secondary" style="text-align:center">
   <tbody
     ><tr>
       <th>Families</th>
@@ -7,7 +7,7 @@
     >
 
     <tr>
-      <th rowspan="3" style="background:#ff5656;">Floral </th>
+      <th rowspan="3">Floral </th>
       <td>Floral</td>
       <td>Fresh cut; flowers </td></tr
     >
@@ -20,7 +20,7 @@
       <td>Orange blossom; sweet spices </td></tr
     >
     <tr>
-      <th rowspan="3" style="background:#d04040;"
+      <th rowspan="3"
         >Amber
         <p>(Oriental)</p>
       </th>
@@ -36,7 +36,7 @@
       <td>Sandalwood; Patchouli </td></tr
     >
     <tr>
-      <th rowspan="3" style="background:#b08056;">Woody </th>
+      <th rowspan="3">Woody </th>
       <td>Woods</td>
       <td>Aromatic woods; vetiver </td></tr
     >
@@ -49,7 +49,7 @@
       <td>Dry woods; leather </td></tr
     >
     <tr>
-      <th rowspan="5" style="background:#90d686;">Fresh </th>
+      <th rowspan="5">Fresh </th>
       <td><b>Aromatic</b></td>
       <td>Lavender; aromatic herbs </td></tr
     >
@@ -74,12 +74,10 @@
 
 <style>
   tr {
-    background-color: oklch(0.968 0.007 247.896);
-    border-bottom: 1px solid oklch(0.9 0.007 247.896);
+    border: 1px solid oklch(0.9 0.007 247.896);
   }
   td {
-    width: 15rem;
-    padding: 0.2rem;
-    border-right: 1px solid oklch(0.9 0.007 247.896);
+    padding: 0.5rem;
+    border: 1px solid oklch(0.9 0.007 247.896);
   }
 </style>

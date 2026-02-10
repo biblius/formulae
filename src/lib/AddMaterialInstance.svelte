@@ -2,28 +2,57 @@
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
-  import { DateFormatter, getLocalTimeZone } from '@internationalized/date';
-  import type { MaterialAbstract, MaterialInstanceAdd } from './types';
+  import { getLocalTimeZone, now } from '@internationalized/date';
+  import type { MaterialInstanceAdd } from './types';
   import * as Popover from './components/ui/popover';
   import { cn, df } from './utils';
   import { Calendar } from './components/ui/calendar';
   import { Calendar as CalendarIcon, RefreshCw } from '@lucide/svelte';
   import * as Select from './components/ui/select';
   import { onMount } from 'svelte';
-  import { materialType } from './materials.svelte';
+  import { insertMaterialInstance, materials, materialType } from './materials.svelte';
 
-  let {
-    state = $bindable(),
-    onSubmit,
-    materials
-  }: {
-    state: MaterialInstanceAdd;
-    materials: MaterialAbstract[];
-    onSubmit: (state: MaterialInstanceAdd) => void;
-  } = $props();
+  let state: MaterialInstanceAdd = $state<MaterialInstanceAdd>({
+    materialId: null,
+    grams: 0,
+    name: null,
+    manufacturer: null,
+    batchId: null,
+    link: null,
+    createdAt: now(getLocalTimeZone()),
+
+    reset() {
+      if (materials.abstract.length > 0) {
+        this.materialId = materials.abstract[0].id.toString();
+      } else {
+        this.materialId = null;
+      }
+      this.name = null;
+      this.grams = 0;
+      this.createdAt = now(getLocalTimeZone());
+      this.manufacturer = null;
+      this.batchId = null;
+    }
+  });
+
+  async function createMaterialInstance() {
+    if (state.materialId == null) {
+      console.warn('material not selected!');
+      return;
+    }
+
+    if (state.grams <= 0) {
+      console.warn('invalid grams!', state.grams);
+      return;
+    }
+
+    await insertMaterialInstance(state);
+
+    state.reset();
+  }
 
   let selectedMaterial = $derived(
-    materials.find((m) => {
+    materials.abstract.find((m) => {
       console.log(m.id, state.materialId);
       if (state.materialId == null) return false;
       return m.id === parseInt(state.materialId);
@@ -32,8 +61,8 @@
 
   onMount(() => {
     console.log(materials);
-    if (materials.length > 0) {
-      state.materialId = materials[0].id.toString();
+    if (materials.abstract.length > 0) {
+      state.materialId = materials.abstract[0].id.toString();
     }
   });
 </script>
@@ -48,7 +77,7 @@
         {/if}
       </Select.Trigger>
       <Select.Content>
-        {#each materials as material}
+        {#each materials.abstract as material}
           <Select.Item value={material.id.toString()} label={material.name}>
             {material.name} ({material.type})
           </Select.Item>
@@ -82,15 +111,8 @@
   </div>
 
   <div class="grid w-full max-w-lg items-center">
-    <Label for="amount" class="text-xs">Amount (g)</Label>
-    <Input
-      bind:value={state.amount}
-      id="amount"
-      type="number"
-      min="0"
-      step="0.01"
-      placeholder="5"
-    />
+    <Label for="grams" class="text-xs">Amount (g)</Label>
+    <Input bind:value={state.grams} id="amount" type="number" min="0" step="0.01" placeholder="5" />
   </div>
 
   <div class="grid w-full max-w-lg items-center">
@@ -125,15 +147,9 @@
   </div>
 
   <div class="mx-auto flex w-full justify-center gap-2 py-2">
-    <Button class="w-32" type="button" variant="secondary" onclick={state.reset}
+    <Button class="w-32" type="button" variant="secondary" onclick={() => state.reset()}
       ><RefreshCw /></Button
     >
-    <Button
-      onclick={() => {
-        onSubmit(state);
-      }}
-      class="w-32"
-      type="submit">Add</Button
-    >
+    <Button onclick={() => createMaterialInstance()} class="w-32" type="submit">Add</Button>
   </div>
 </div>

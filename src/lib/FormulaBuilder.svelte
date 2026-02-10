@@ -9,7 +9,7 @@
   import EditableNumber from './EditableNumber.svelte';
   import * as DropdownMenu from './components/ui/dropdown-menu/index';
   import { Input } from './components/ui/input';
-  import { formulae, initFormulae, insertFormula } from './formula.svelte';
+  import { initFormulae, insertFormula } from './formula.svelte';
   import FormulaList from './FormulaList.svelte';
 
   let showMaterialList = $state(false);
@@ -53,10 +53,12 @@
 
 {#await initFormulae() then}
   <div class="m-2 justify-center gap-1 rounded-md p-2">
-    <div class="mx-auto flex w-1/2 items-center justify-between gap-6 rounded-xl p-2 py-2">
+    <div class="mx-auto flex items-center justify-between gap-4 rounded-xl p-2 py-2">
+      <!-- NAME -->
       <div>
         <Input bind:value={formula.name} placeholder="Formula name"></Input>
       </div>
+
       <div class="flex items-center gap-4">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger class="max-w-lg">
@@ -106,7 +108,7 @@
         <Label class="text-xs">Target total</Label>
         <EditableNumber
           amount={formula.targetGrams}
-          onSave={(value) => {
+          onSave={(value: number) => {
             formula.targetGrams = value;
           }}
           onclickP={() => {
@@ -123,7 +125,7 @@
         <Label class="text-xs">Target material</Label>
         <EditableNumber
           amount={formula.targetConcentration}
-          onSave={(value) => {
+          onSave={(value: number) => {
             formula.targetConcentration = value / 100;
           }}
           onclickP={() => {
@@ -149,16 +151,18 @@
     </div>
 
     <table class="w-full table-fixed">
-      <tbody>
-        <!-- HEADER ROW -->
+      <!-- HEADER ROW -->
 
-        <tr class="p-2">
+      <thead class="p-2">
+        <tr>
           <th class="w-1/4 border p-2 text-center">Material</th>
           <th class="w-1/4 border p-2 text-center">Amount</th>
           <th class="w-1/4 border p-2 text-center">% material</th>
           <th class="w-1/4 border p-2 text-center">% total</th>
         </tr>
+      </thead>
 
+      <tbody>
         <!-- MATERIAL ROWS -->
 
         {#each formula.materials as material}
@@ -167,7 +171,7 @@
             <td class="flex justify-center border p-2 text-center">
               <EditableNumber
                 amount={material.grams}
-                onSave={(value) => {
+                onSave={(value: number) => {
                   material.grams = value;
                 }}
                 onclickP={() => {
@@ -231,7 +235,10 @@
 
     <!-- FORMULA LIST -->
 
-    <FormulaList formulae={formulae.formulae} />
+    <FormulaList />
+
+    <!-- HISTORY -->
+
     <div class="my-4">
       <!-- svelte-ignore a11y_click_events_have_key_events -->
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->

@@ -1,5 +1,5 @@
 import { type DateValue } from '@internationalized/date';
-import type { MaterialType } from './materials.svelte';
+import type { MaterialType, MaterialInstanceType } from './materials.svelte';
 
 // ============================
 // Materials
@@ -16,10 +16,10 @@ export type MaterialAbstract = {
   /** WOODY | AMBER | FLORAL | FRESH */
   family?: string;
   subfamily?: string;
-  tags: MaterialTag[];
+  tags: string[];
   /** CAS registry number */
   cas_number?: string;
-  links: MaterialLink[];
+  links: string[];
   color?: string;
 };
 
@@ -33,11 +33,6 @@ export type MaterialTag = {
   color?: string;
 };
 
-export type MaterialLink = {
-  material_id: number;
-  value: string;
-};
-
 // ============================
 // Material (Inventory)
 // ============================
@@ -46,13 +41,14 @@ export type Material = {
   material_id: number;
   id: number;
   name?: string;
-  type?: string;
+  type?: MaterialInstanceType;
   manufacturer?: string;
   batch_id?: string;
   link?: string;
   grams_available: number;
   grams_initial: number;
-  predilution?: number;
+  grams_material?: number;
+  grams_solvent?: number;
   created_at: string;
 };
 
@@ -101,23 +97,41 @@ export type MaterialAbstractAdd = {
   reset: () => void;
 };
 
+export type MaterialAbstractEdit = {
+  name: string;
+  type: MaterialType;
+  tagInput: string;
+  tags: string[];
+  linkInput: string;
+  links: string[];
+  family?: string;
+  subfamily?: string;
+  cas?: string;
+  description?: string;
+};
+
 export type MaterialInstanceAdd = {
   /**
+   * Abstract material ID.
    * Use string while adding, parse to int on insert
    */
   materialId: string | null;
   name: string | null;
   manufacturer: string | null;
   batchId: string | null;
-  amount: number;
+  grams: number;
   link: string | null;
   createdAt: DateValue | undefined;
   reset: () => void;
 };
 
-export type MaterialTagEdit = {
-  value: string;
-  color: string;
+export type MaterialDilutionAdd = {
+  material: Material | null;
+  name: string | null;
+  gramsMaterial: number;
+  gramsTotal: number;
+  createdAt: DateValue | undefined;
+  reset: () => void;
 };
 
 // ============================
@@ -127,7 +141,7 @@ export type MaterialTagEdit = {
 export type FormulaBuilder = {
   name: string;
   description?: string;
-  materials: FormulaBuilderMaterial[];
+  materials: MaterialSpend[];
   solventGrams: number;
   targetGrams: number;
   targetConcentration: number;
@@ -135,7 +149,7 @@ export type FormulaBuilder = {
   reset: () => void;
 };
 
-export type FormulaBuilderMaterial = {
+export type MaterialSpend = {
   original: Material;
   grams: number;
 };
