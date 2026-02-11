@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ChevronDown, ChevronRight } from '@lucide/svelte';
-  import { initFormulae } from './formula.svelte';
+  import { initFormulae } from './formulae.svelte';
   import FormulaList from './FormulaList.svelte';
   import FormulaBuilder from './FormulaBuilder.svelte';
   import MaterialHistory from './MaterialHistory.svelte';

@@ -7,7 +7,7 @@
   import { Info, Plus, X } from '@lucide/svelte';
   import * as DropdownMenu from './components/ui/dropdown-menu/index';
   import { Input } from './components/ui/input';
-  import { insertFormula } from './formula.svelte';
+  import { insertFormula } from './formulae.svelte';
 
   let exceeded = $state<number[]>([]);
 

@@ -2,7 +2,7 @@
   import * as Dialog from './components/ui/dialog';
   import { Check, Trash, X } from '@lucide/svelte';
   import { Button, buttonVariants } from '$lib/components/ui/button';
-  import { deleteFormula, insertFormulaNote } from './formula.svelte';
+  import { deleteFormula, insertFormulaNote } from './formulae.svelte';
   import { materials } from './materials.svelte';
   import { gf, pf } from './utils';
   import FormulaNote from './FormulaNote.svelte';

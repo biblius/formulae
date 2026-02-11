@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { formulae } from './formula.svelte';
+  import { formulae } from './formulae.svelte';
   import { listMaterialHistory, materials, type MaterialTargetType } from './materials.svelte';
   import { gf } from './utils';
 

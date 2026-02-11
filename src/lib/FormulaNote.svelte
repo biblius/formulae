@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Check, SquarePen, Trash, X } from '@lucide/svelte';
   import { Button } from '$lib/components/ui/button';
-  import { deleteFormulaNote, updateFormulaNote } from './formula.svelte';
+  import { deleteFormulaNote, updateFormulaNote } from './formulae.svelte';
   import type { FormulaNote } from './types';
 
   let { note = $bindable() }: { note: FormulaNote } = $props();
