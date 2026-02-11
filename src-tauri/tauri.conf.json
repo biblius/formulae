@@ -22,6 +22,7 @@
     }
   },
   "bundle": {
+    "createUpdaterArtifacts": true,
     "active": true,
     "targets": "all",
     "icon": [
@@ -35,6 +36,15 @@
   "plugins": {
     "sql": {
       "preload": ["sqlite:formulae.db"]
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgwRUYxREREN0Q4ODVENEQKUldSTlhZaDkzUjN2Z0lORjV0YWgyRDRsN3haSnVLWWg4Uk1kay9rcE9rcS9NQjVVN3FVV3hENWQK",
+      "endpoints": [
+        "https://github.com/biblius/formulae/releases/{{target}}/{{arch}}/{{current_version}}"
+      ],
+      "windows": {
+        "installMode": "basicUi"
+      }
     }
   }
 }
