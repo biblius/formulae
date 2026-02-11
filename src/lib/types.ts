@@ -1,5 +1,5 @@
 import { type DateValue } from '@internationalized/date';
-import type { MaterialType, MaterialInstanceType } from './materials.svelte';
+import type { MaterialType, MaterialInstanceType, MaterialTargetType } from './materials.svelte';
 
 // ============================
 // Materials
@@ -111,17 +111,13 @@ export type MaterialAbstractEdit = {
 };
 
 export type MaterialInstanceAdd = {
-  /**
-   * Abstract material ID.
-   * Use string while adding, parse to int on insert
-   */
-  materialId: string | null;
   name: string | null;
   manufacturer: string | null;
   batchId: string | null;
   grams: number;
   link: string | null;
   createdAt: DateValue | undefined;
+  predilution: number | null;
   reset: () => void;
 };
 
@@ -152,4 +148,13 @@ export type FormulaBuilder = {
 export type MaterialSpend = {
   original: Material;
   grams: number;
+};
+
+export type MaterialHistory = {
+  id: number;
+  material_id: number;
+  target_id: number;
+  target_type: MaterialTargetType;
+  grams: number;
+  created_at: string;
 };

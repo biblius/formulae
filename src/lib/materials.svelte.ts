@@ -5,6 +5,7 @@ import type {
   MaterialAbstractAdd,
   MaterialAbstractEdit,
   MaterialDilutionAdd,
+  MaterialHistory,
   MaterialInstanceAdd,
   MaterialSpend
 } from './types';
@@ -54,6 +55,8 @@ export async function initMaterials() {
  * NA - natural absolute
  */
 export type MaterialType = 'EO' | 'SY' | 'NA';
+
+export type MaterialTargetType = 'FORMULA' | 'DILUTION';
 
 export type MaterialInstanceType = 'PURE' | 'DILUTION';
 
@@ -112,8 +115,23 @@ export async function insertMaterialAbstract(
   return material;
 }
 
-export async function insertMaterialInstance(state: MaterialInstanceAdd): Promise<Material> {
+export async function insertMaterialInstance(
+  materialId: number,
+  state: MaterialInstanceAdd
+): Promise<Material> {
   const _db = await db();
+
+  let gramsMaterial = null;
+  let gramsSolvent = null;
+  let type: MaterialInstanceType = 'PURE';
+
+  if (state.predilution != null && state.predilution > 0) {
+    const predilution = state.predilution / 100;
+    gramsMaterial = state.grams * predilution;
+    gramsSolvent = state.grams - gramsMaterial;
+    type = 'DILUTION';
+  }
+
   const { lastInsertId } = await _db.execute(
     `
       INSERT INTO materials(
@@ -125,19 +143,23 @@ export async function insertMaterialInstance(state: MaterialInstanceAdd): Promis
         link,
         grams_available,
         grams_initial,
+        grams_material,
+        grams_solvent,
         created_at
       ) 
-      VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       `,
     [
-      parseInt(state.materialId!!),
+      materialId,
       state.name,
-      'PURE',
+      type,
       state.manufacturer,
       state.batchId,
       state.link,
       state.grams,
       state.grams,
+      gramsMaterial,
+      gramsSolvent,
       date(state.createdAt!!)
     ]
   );
@@ -154,6 +176,14 @@ export async function insertMaterialDilution(state: MaterialDilutionAdd): Promis
 
   if (state.gramsMaterial > state.material!!.grams_available) {
     throw `Not enough material ${state.material!!.id}: ${state.material?.grams_available} / ${state.gramsMaterial}`;
+  }
+
+  let gramsDiluted = null;
+  if (state.material?.grams_material != null && state.material.grams_solvent != null) {
+    let concentration =
+      state.material.grams_material /
+      (state.material.grams_material + state.material.grams_solvent);
+    gramsDiluted = state.gramsMaterial * concentration;
   }
 
   const { lastInsertId: dilutionId } = await _db.execute(
@@ -178,7 +208,7 @@ export async function insertMaterialDilution(state: MaterialDilutionAdd): Promis
       'DILUTION',
       state.gramsTotal,
       state.gramsTotal,
-      state.gramsMaterial,
+      gramsDiluted != null ? gramsDiluted : state.gramsMaterial,
       state.gramsTotal - state.gramsMaterial,
       date(state.createdAt!!)
     ]
@@ -294,6 +324,12 @@ export async function deleteMaterialAbstract(id: number) {
   materials.inventory = materials.inventory.filter((m) => m.material_id !== id);
 }
 
+export async function deleteMaterial(id: number) {
+  const _db = await db();
+  await _db.execute('DELETE FROM materials WHERE id = $1', [id]);
+  materials.inventory = materials.inventory.filter((m) => m.id !== id);
+}
+
 export async function getMaterialAbstract(id: number): Promise<MaterialAbstract> {
   const _db = await db();
 
@@ -337,6 +373,7 @@ export async function getMaterial(id: number): Promise<Material> {
         id, 
         material_id,
         name,
+        type,
         manufacturer,
         batch_id,
         link,
@@ -354,7 +391,7 @@ export async function getMaterial(id: number): Promise<Material> {
 }
 
 export async function spendMaterials(
-  target: 'FORMULA' | 'DILUTION',
+  target: MaterialTargetType,
   targetId: number,
   materials: MaterialSpend[]
 ) {
@@ -373,4 +410,27 @@ export async function spendMaterials(
     ]);
     material.original.grams_available -= material.grams;
   }
+}
+
+export async function listMaterialHistory(
+  type: MaterialTargetType
+): Promise<Record<number, MaterialHistory[]>> {
+  const _db = await db();
+
+  const history: MaterialHistory[] = await _db.select(
+    `SELECT id, material_id, target_id, target_type, grams, created_at FROM material_history WHERE target_type = $1 ORDER BY created_at DESC`,
+    [type]
+  );
+
+  const out: Record<number, MaterialHistory[]> = {};
+
+  for (const item of history) {
+    if (out[item.target_id]) {
+      out[item.target_id].push(item);
+    } else {
+      out[item.target_id] = [item];
+    }
+  }
+
+  return out;
 }

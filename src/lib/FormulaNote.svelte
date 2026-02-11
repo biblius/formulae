@@ -59,7 +59,7 @@
     </div>
   {:else}
     <div class="m-1 w-full p-2">
-      <p class="my-2 w-full border-b font-bold">{note.created_at}</p>
+      <p class="my-2 w-full border-b font-bold text-muted-foreground">{note.created_at}</p>
       <p class="whitespace-pre-wrap">{note.content}</p>
     </div>
   {/if}

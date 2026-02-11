@@ -3,30 +3,37 @@
   import AddMaterialDilution from './AddMaterialDilution.svelte';
   import AddMaterialInstance from './AddMaterialInstance.svelte';
   import Button from './components/ui/button/button.svelte';
+  import type { Material, MaterialAbstract } from './types';
 
-  let display: 'abstract' | 'instance' | 'dilution' = $state('instance');
+  let {
+    material,
+    inventory,
+    onSubmit
+  }: {
+    material: MaterialAbstract;
+    inventory: Material[];
+    onSubmit: () => void;
+  } = $props();
+
+  let display: 'instance' | 'dilution' = $state('instance');
 </script>
 
 <div class="">
-  <div class="col-span-2 flex w-full justify-center">
-    <Button
-      variant={display === 'abstract' ? 'default' : 'outline'}
-      onclick={() => (display = 'abstract')}>Definition</Button
-    >
+  <h3 class="w-full p-2 text-center text-sm text-muted-foreground">Add to inventory</h3>
+  <div class="flex w-full justify-center gap-2">
     <Button
       variant={display === 'instance' ? 'default' : 'outline'}
-      onclick={() => (display = 'instance')}>Inventory</Button
+      onclick={() => (display = 'instance')}>Pure</Button
     >
     <Button
+      disabled={inventory.length === 0}
       variant={display === 'dilution' ? 'default' : 'outline'}
       onclick={() => (display = 'dilution')}>Dilution</Button
     >
   </div>
-  {#if display === 'abstract'}
-    <AddMaterialAbstract />
-  {:else if display === 'instance'}
-    <AddMaterialInstance />
+  {#if display === 'instance'}
+    <AddMaterialInstance {onSubmit} {material} />
   {:else if display === 'dilution'}
-    <AddMaterialDilution />
+    <AddMaterialDilution {onSubmit} {inventory} />
   {/if}
 </div>

@@ -5,11 +5,17 @@ import type { Formula, FormulaBuilder, FormulaMaterial, FormulaNote } from './ty
 export type FormulaState = {
   formulae: Formula[];
   initialized: boolean;
+
+  get: (id: number) => Formula | undefined;
 };
 
-export let formulae: FormulaState = $state({
+export let formulae: FormulaState = $state<FormulaState>({
   formulae: [],
-  initialized: false
+  initialized: false,
+
+  get(id: number) {
+    return this.formulae.find((f) => f.id === id);
+  }
 });
 
 export async function initFormulae() {
@@ -128,6 +134,14 @@ export async function listFormulae(): Promise<Formula[]> {
   }
 
   return formulae;
+}
+
+export async function deleteFormula(id: number) {
+  const _db = await db();
+
+  await _db.execute(`DELETE FROM formulae WHERE id = $1`, [id]);
+
+  formulae.formulae = formulae.formulae.filter((f) => f.id !== id);
 }
 
 export async function getFormula(id: number): Promise<Formula> {

@@ -95,5 +95,6 @@ CREATE TABLE material_history(
   target_id INTEGER NOT NULL,
   target_type TEXT NOT NULL,
   grams REAL NOT NULL CHECK (grams > 0),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE CASCADE
 );
