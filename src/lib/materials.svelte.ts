@@ -84,12 +84,11 @@ export async function insertMaterialAbstract(
         description,
         type,
         family,
-        subfamily,
         cas_number
       ) 
       VALUES($1, $2, $3, $4, $5, $6)
       `,
-    [state.name, state.description, state.type, state.family, state.subfamily, state.cas]
+    [state.name, state.description, state.type, state.family, state.cas]
   );
 
   if (state.tags.length > 0) {
@@ -229,7 +228,7 @@ export async function listMaterialsAbstract(): Promise<MaterialAbstract[]> {
   const _db = await db();
 
   let materials: MaterialAbstract[] = await _db.select(`
-       SELECT id, name, description, type, family, subfamily, cas_number 
+       SELECT id, name, description, type, family, cas_number 
        FROM materials_abstract
       `);
 
@@ -266,11 +265,10 @@ export async function updateMaterialAbstract(id: number, update: MaterialAbstrac
         description = $2,
         type = $3,
         family = $4,
-        subfamily = $5,
-        cas_number = $6
-      WHERE id = $7
+        cas_number = $5
+      WHERE id = $6
       `,
-    [update.name, update.description, update.type, update.family, update.subfamily, update.cas, id]
+    [update.name, update.description, update.type, update.family, update.cas, id]
   );
 
   await _db.execute(`DELETE FROM material_tags WHERE material_id = $1`, [id]);
@@ -335,7 +333,7 @@ export async function getMaterialAbstract(id: number): Promise<MaterialAbstract>
 
   let materials: MaterialAbstract[] = await _db.select(
     `
-       SELECT id, name, description, type, family, subfamily, cas_number 
+       SELECT id, name, description, type, family, cas_number 
        FROM materials_abstract WHERE id = $1 LIMIT 1
       `,
     [id]

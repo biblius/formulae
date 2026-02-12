@@ -17,7 +17,6 @@
     type: 'EO',
     description: null,
     family: null,
-    subfamily: null,
     cas: null,
     linkInput: '',
     links: [],
@@ -29,7 +28,6 @@
       this.type = 'EO';
       this.description = null;
       this.family = null;
-      this.subfamily = null;
       this.cas = null;
       this.links = [];
       this.linkInput = '';
@@ -129,19 +127,6 @@
       />
     </div>
   </div>
-
-  {#if state.family}
-    <div class="flex w-full items-center justify-center">
-      <div class="w-1/2">
-        <Label for="subfamily" class="text-xs">Subfamily</Label>
-        <Input
-          id="subfamily"
-          bind:value={state.subfamily}
-          placeholder="Citrus / Mossy Woods / Soft Amber (optional)"
-        />
-      </div>
-    </div>
-  {/if}
 
   <div class="flex w-full items-center justify-center">
     <div class="w-1/2">

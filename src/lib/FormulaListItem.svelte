@@ -104,7 +104,7 @@
 
   {#if open}
     <div class="p-4">
-      <div class="m-2 w-full">
+      <div class="m-2 w-full overflow-x-auto">
         <table class="mx-auto w-2/3 border-collapse text-sm">
           <!-- HEADER -->
 
@@ -185,16 +185,14 @@
 
       <!-- Notes -->
 
-      <div class="flex w-full flex-wrap justify-center text-sm">
+      <div class="flex w-full flex-wrap justify-center overflow-x-auto text-sm">
         <div class="my-2 w-full text-center">
           <span class="text-muted-foreground">Notes</span>
         </div>
 
-        <div class="max-auto max-h-96 min-h-0 w-2/3 overflow-scroll">
-          {#each formula.notes as _, i}
-            <FormulaNote bind:note={formula.notes[i]} />
-          {/each}
-        </div>
+        {#each formula.notes as _, i}
+          <FormulaNote bind:note={formula.notes[i]} />
+        {/each}
 
         {#if addingNote}
           <div class="m-2 flex w-1/2 flex-wrap justify-center">

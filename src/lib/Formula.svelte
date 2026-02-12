@@ -9,10 +9,12 @@
 </script>
 
 {#await initFormulae() then}
-  <div class="m-2 justify-center gap-1 rounded-md p-2">
+  <div class="m-2 justify-center gap-1 overflow-x-auto rounded-md p-2">
     <h2 class="border-b">Create formula</h2>
 
-    <FormulaBuilder />
+    <div class="overflow-x-auto">
+      <FormulaBuilder />
+    </div>
 
     <h2 class="my-2 border-b">Formulae</h2>
     <!-- FORMULA LIST -->

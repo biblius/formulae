@@ -15,7 +15,6 @@ export type MaterialAbstract = {
   note?: string;
   /** WOODY | AMBER | FLORAL | FRESH */
   family?: string;
-  subfamily?: string;
   tags: string[];
   /** CAS registry number */
   cas_number?: string;
@@ -88,7 +87,6 @@ export type MaterialAbstractAdd = {
   type: MaterialType;
   description: string | null;
   family: string | null;
-  subfamily: string | null;
   cas: string | null;
   linkInput: string;
   links: string[];
@@ -105,7 +103,6 @@ export type MaterialAbstractEdit = {
   linkInput: string;
   links: string[];
   family?: string;
-  subfamily?: string;
   cas?: string;
   description?: string;
 };

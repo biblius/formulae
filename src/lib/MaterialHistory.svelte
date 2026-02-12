@@ -21,22 +21,28 @@
 {#await listMaterialHistory(type) then history}
   <div class="max-h-80 space-y-6 overflow-scroll p-2">
     {#each Object.entries(history) as [targetId, entries]}
-      <details class="mx-auto w-1/2 rounded-sm border">
+      <details class="mx-auto w-2/3 rounded-sm border">
         <summary
-          class="flex cursor-pointer list-none items-baseline justify-between border-b p-4 font-semibold"
+          class="flex cursor-pointer list-none items-baseline justify-between border-b px-4 py-2 font-semibold"
         >
           <span>
-            {target().get(parseInt(targetId))?.name}
+            Created {target().get(parseInt(targetId))?.name}
           </span>
-          <span class="text-sm font-normal">
-            {entries.length} materials used
+          <span class="text-sm font-normal not-sm:hidden">
+            {entries.length}
+            {#if entries.length === 1}
+              material
+            {:else}
+              materials
+            {/if}
+            used for {type.toLowerCase()}
           </span>
-          <span class="text-sm font-normal">
+          <span class="text-sm font-normal not-sm:hidden">
             {target().get(parseInt(targetId))?.created_at}
           </span>
         </summary>
 
-        <div class="overflow-x-auto">
+        <div>
           <table class="mx-auto w-1/2 border-collapse text-sm">
             <thead>
               <tr>

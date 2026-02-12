@@ -75,39 +75,18 @@
 
 <!-- HEADER -->
 
-<div class="mx-4 flex items-center justify-center gap-4 rounded-xl p-2 py-2">
+<div class="mx-4 flex items-center justify-center gap-4 rounded-xl p-2 py-2 not-sm:flex-wrap">
   <!-- NAME -->
 
   <!-- ADD MATERIAL -->
 
-  <div class="flex items-center gap-4">
-    <div>
-      <Input bind:value={formula.name} placeholder="Formula name"></Input>
+  <div class="flex items-center gap-4 not-sm:w-full not-sm:flex-wrap">
+    <div class="not-sm:w-full">
+      <Input class="w-full" bind:value={formula.name} placeholder="Name"></Input>
     </div>
 
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger class="max-w-lg">
-        <Button size="icon-sm">
-          <Plus />
-        </Button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Content>
-        {#each materials.inventory as material}
-          <DropdownMenu.Item
-            onclick={() => addToFormula(material)}
-            disabled={material.grams_available <= 0}
-            class="flex"
-          >
-            <p class="flex-2">{material.name}</p>
-            <p>
-              {gf.format(material.grams_available)}
-            </p>
-          </DropdownMenu.Item>
-        {/each}
-      </DropdownMenu.Content>
-    </DropdownMenu.Root>
-
     <Button
+      class="not-sm:hidden"
       size="icon-sm"
       variant="ghost"
       onclick={() => {
@@ -118,6 +97,7 @@
       }}>/10</Button
     >
     <Button
+      class="not-sm:hidden"
       size="icon-sm"
       variant="ghost"
       onclick={() => {
@@ -129,13 +109,35 @@
     >
   </div>
 
+  <DropdownMenu.Root>
+    <DropdownMenu.Trigger class="max-w-lg">
+      <Button size="icon-sm" variant="outline">
+        <Plus />
+      </Button>
+    </DropdownMenu.Trigger>
+    <DropdownMenu.Content>
+      {#each materials.inventory as material}
+        <DropdownMenu.Item
+          onclick={() => addToFormula(material)}
+          disabled={material.grams_available <= 0}
+          class="flex"
+        >
+          <p class="flex-2">{material.name}</p>
+          <p>
+            {gf.format(material.grams_available)}
+          </p>
+        </DropdownMenu.Item>
+      {/each}
+    </DropdownMenu.Content>
+  </DropdownMenu.Root>
+
   <div class="flex flex-wrap justify-center">
-    <p class=" w-full text-center text-xs">Target total (g)</p>
+    <p class=" w-full text-center text-xs">Total (g)</p>
     <Input type="number" step="1" class="w-20" bind:value={formula.targetGrams}></Input>
   </div>
 
   <div>
-    <Label class="text-xs">Target concentration (%)</Label>
+    <Label class="text-xs">Concentration (%)</Label>
     <Input type="number" step="1" class="w-20" bind:value={formula.targetConcentration}></Input>
   </div>
 
@@ -145,7 +147,7 @@
   </div>
 </div>
 
-<table class="mx-auto w-2/3 table-fixed">
+<table class="mx-auto w-2/3 border-collapse sm:table-fixed">
   <!-- HEADER ROW -->
 
   <thead class="p-2">
