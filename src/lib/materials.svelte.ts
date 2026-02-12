@@ -86,7 +86,7 @@ export async function insertMaterialAbstract(
         family,
         cas_number
       ) 
-      VALUES($1, $2, $3, $4, $5, $6)
+      VALUES($1, $2, $3, $4, $5)
       `,
     [state.name, state.description, state.type, state.family, state.cas]
   );

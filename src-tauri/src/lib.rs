@@ -10,6 +10,12 @@ pub fn run() {
             sql: include_str!("../../migrations/20260202181428_init.up.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 2,
+            description: "Remove subfamily from materials_abstract.",
+            sql: include_str!("../../migrations/20260212211043_remove_subfamily.up.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

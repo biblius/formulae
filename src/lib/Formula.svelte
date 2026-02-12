@@ -4,8 +4,6 @@
   import FormulaList from './FormulaList.svelte';
   import FormulaBuilder from './FormulaBuilder.svelte';
   import MaterialHistory from './MaterialHistory.svelte';
-
-  let showHistory = $state(true);
 </script>
 
 {#await initFormulae() then}
@@ -24,22 +22,9 @@
     <!-- HISTORY -->
 
     <div class="my-4">
-      <!-- svelte-ignore a11y_click_events_have_key_events -->
-      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-      <h2 onclick={() => (showHistory = !showHistory)}>
-        <div class="flex cursor-pointer items-center border-b">
-          {#if showHistory}
-            <ChevronDown size={14} />
-          {:else}
-            <ChevronRight size={14} />
-          {/if}
-          <p>Formula history</p>
-        </div>
-      </h2>
+      <h3 class="border-b">Formula history</h3>
 
-      {#if showHistory}
-        <MaterialHistory type={'FORMULA'} />
-      {/if}
+      <MaterialHistory type={'FORMULA'} />
     </div>
   </div>
 {/await}
