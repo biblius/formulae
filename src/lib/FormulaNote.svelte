@@ -3,7 +3,7 @@
   import { Button } from '$lib/components/ui/button';
   import { deleteFormulaNote, updateFormulaNote } from './formulae.svelte';
   import type { FormulaNote } from './types';
-  import { df } from './utils';
+  import { df, dtf } from './utils';
 
   let { note = $bindable() }: { note: FormulaNote } = $props();
   let editing = $state(false);
@@ -42,7 +42,7 @@
   >
   {#if editing}
     <textarea
-      class="w-full resize-y rounded-md border p-2 text-sm"
+      class="h-40 w-full resize-y rounded-md border p-2 text-sm"
       rows="3"
       placeholder="Write a note…"
       bind:value={note.content}
@@ -61,11 +61,9 @@
   {:else}
     <div class="m-1 w-full p-2">
       <p class="my-2 w-full border-b font-bold text-muted-foreground">
-        {df.format(new Date(note.created_at))}
+        {dtf.format(new Date(note.created_at))}
       </p>
       <p class="whitespace-pre-wrap">{note.content}</p>
     </div>
   {/if}
-
-  <!-- Add note textarea -->
 </div>

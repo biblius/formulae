@@ -7,6 +7,7 @@
   import { df, gf, pf } from './utils';
   import FormulaNote from './FormulaNote.svelte';
   import type { Formula, FormulaMaterial } from './types';
+  import { tick } from 'svelte';
 
   let open = $state<boolean>(false);
   let addingNote = $state<boolean>(false);
@@ -22,7 +23,6 @@
 
   let materialDilutionTotal = $derived(
     formula.materials.reduce((acc, material) => {
-      console.log(material);
       const original = materials.get(material.material_id);
 
       if (!original) {
@@ -41,8 +41,15 @@
   let concentrationTotal = $derived(materialTotal / formula.grams_total);
   let concentrationTotalAbs = $derived(materialDilutionTotal / formula.grams_total);
 
-  function toggleOpen() {
+  async function toggleOpen() {
     open = !open;
+    if (open) {
+      await tick(); // wait for expanded DOM
+      document.getElementById(`formula-${formula.id}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
   }
 
   function startAddNote() {
@@ -87,7 +94,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<li class="m-2 border">
+<li id={`formula-${formula.id}`} class="m-2 border">
   <!-- HEADER -->
 
   <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -215,7 +222,7 @@
         {#if addingNote}
           <div class="m-2 flex w-1/2 flex-wrap justify-center">
             <textarea
-              class="w-full resize-y rounded-md border p-2 text-sm"
+              class="h-40 w-full resize-y rounded-md border p-2 text-sm"
               rows="3"
               placeholder="Write a note…"
               bind:value={noteInput}

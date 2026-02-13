@@ -14,7 +14,7 @@
   } = $props();
 
   let editing = $state(false);
-  let inputRef: HTMLInputElement;
+  let inputRef: HTMLInputElement | undefined = $state();
 
   let lastValue = 0;
 
@@ -25,7 +25,6 @@
 
     // Focus input after next tick
     tick().then(() => {
-      console.log('inputref', inputRef);
       inputRef!!.focus();
       inputRef!!.select();
     });

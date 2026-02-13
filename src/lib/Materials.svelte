@@ -1,6 +1,6 @@
 <script lang="ts">
   import * as Select from './components/ui/select';
-  import { Plus } from '@lucide/svelte';
+  import { ChevronDown, ChevronRight, Plus } from '@lucide/svelte';
   import Button from './components/ui/button/button.svelte';
   import MaterialListItem from './MaterialListItem.svelte';
   import { Input } from '$lib/components/ui/input';
@@ -20,6 +20,7 @@
     history: HistoryEntry<'DILUTION'>[];
   } = $props();
 
+  let showHistory = $state(false);
   let searching = $state('');
   let searchBy: 'Name' | 'Family' | 'Tags' = $state('Name');
 
@@ -65,6 +66,7 @@
       });
     }
   });
+
   let adding = $state(false);
 </script>
 
@@ -93,7 +95,7 @@
     </div>
   </h2>
 
-  <div class="max-h-[60vh] min-h-[60vh] w-full overflow-y-auto">
+  <ul class="w-full">
     {#if adding}
       <AddMaterialAbstract onSubmit={() => (adding = false)} />
     {/if}
@@ -104,8 +106,22 @@
         inventory={materials.filter((m) => m.material_id === material.id)}
       />
     {/each}
-  </div>
+  </ul>
 
-  <h3 class="my-4 border-b">Dilution history</h3>
-  <MaterialHistory {history} />
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <h3
+    onclick={() => (showHistory = !showHistory)}
+    class="my-4 flex cursor-pointer items-center border-b"
+  >
+    {#if showHistory}
+      <ChevronDown size={14} />
+    {:else}
+      <ChevronRight size={14} />
+    {/if}
+    Dilution history
+  </h3>
+  {#if showHistory}
+    <MaterialHistory {history} />
+  {/if}
 </main>

@@ -170,7 +170,7 @@
           disabled={material.grams_available <= 0}
           class="flex"
         >
-          <p class="flex-2">{material.name}</p>
+          <p class="flex-1">{material.name}</p>
           <p>
             {gf.format(material.grams_available)}
           </p>
@@ -195,7 +195,7 @@
   </div>
 </div>
 
-<table class="mx-auto w-2/3 border-collapse sm:table-fixed">
+<table class="mx-auto w-2/3 border-collapse md:table-fixed">
   <!-- HEADER ROW -->
 
   <thead class="p-2">
@@ -212,9 +212,9 @@
     <!-- MATERIAL ROWS -->
 
     {#each formula.materials as material}
-      <tr class="relative hover:bg-muted/50">
+      <tr class="relative">
         <td class="border p-2 text-center">
-          <div class="flex w-fit items-center justify-start gap-4">
+          <div class="flex w-fit items-center justify-start">
             <Button
               size="icon-sm"
               variant="ghost"

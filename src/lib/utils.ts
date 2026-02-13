@@ -18,6 +18,12 @@ export const df = new DateFormatter('en-US', {
   dateStyle: 'long'
 });
 
+/** Date-time formatter */
+export const dtf = new DateFormatter('en-US', {
+  dateStyle: 'long',
+  timeStyle: 'short'
+});
+
 /** Gram formatter */
 export const gf = new Intl.NumberFormat('en-US', {
   style: 'unit',

@@ -236,11 +236,11 @@ export async function insertMaterialDilution(state: MaterialDilutionAdd): Promis
 
   const spend = [{ original: state.material!!, grams: state.gramsMaterial }];
 
-  await spendMaterials('DILUTION', dilutionId!!, spend);
-
   const dilution = await getMaterial(dilutionId!!);
 
   materials.inventory.push(dilution);
+
+  await spendMaterials('DILUTION', dilutionId!!, spend);
 
   return dilution;
 }
@@ -467,9 +467,11 @@ export async function listMaterialHistory<T extends MaterialTargetType>(
   const _db = await db();
 
   const history: MaterialHistory[] = await _db.select(
-    `SELECT id, material_id, target_id, target_type, grams, created_at FROM material_history WHERE target_type = $1 ORDER BY created_at DESC`,
+    `SELECT id, material_id, target_id, target_type, grams, created_at FROM material_history WHERE target_type = $1`,
     [type]
   );
+
+  console.log(history);
 
   const out: Record<number, HistoryEntry<T>> = {};
 
@@ -486,5 +488,9 @@ export async function listMaterialHistory<T extends MaterialTargetType>(
     }
   }
 
-  return Object.values(out);
+  const entries = Object.values(out);
+
+  entries.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf());
+
+  return entries;
 }

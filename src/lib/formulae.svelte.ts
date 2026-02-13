@@ -46,11 +46,11 @@ export async function insertFormula(state: FormulaBuilder): Promise<Formula> {
     state.materials.map((material) => [material.original.id, formulaId!!, material.grams])
   );
 
-  await spendMaterials('FORMULA', formulaId!!, state.materials);
-
   const formula = await getFormula(formulaId!!);
 
   formulae.formulae.unshift(formula);
+
+  await spendMaterials('FORMULA', formulaId!!, state.materials);
 
   return formula;
 }
@@ -74,8 +74,6 @@ export async function insertFormulaNote(formulaId: number, content: string): Pro
   );
 
   formulae.formulae.find((f) => f.id === formulaId)?.notes.push(note[0]!!);
-
-  console.log($state.snapshot(formulae));
 
   return note[0];
 }

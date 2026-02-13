@@ -28,6 +28,7 @@
   import FragranceWheel from './FragranceWheel.svelte';
   import MultiInput from './components/MultiInput.svelte';
   import MaterialInventory from './MaterialInventory.svelte';
+  import { tick } from 'svelte';
 
   let {
     material,
@@ -38,7 +39,18 @@
   } = $props();
 
   let editing = $state(false);
-  let expanded = $state(false);
+  let open = $state(false);
+
+  async function toggleOpen() {
+    open = !open;
+    if (open) {
+      await tick(); // wait for expanded DOM
+      document.getElementById(`material-${material.id}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  }
 
   let editState = $state<MaterialAbstractEdit>({
     name: '',
@@ -56,7 +68,7 @@
       return;
     }
 
-    expanded = true;
+    open = true;
     editing = true;
 
     editState.name = material.name;
@@ -96,14 +108,17 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<details class="m-2 border p-0" bind:open={expanded}>
+<li id={`material-${material.id}`} class="m-2 border">
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <summary class="flex w-full cursor-pointer items-center gap-2 bg-muted/50 px-2">
-    <p class="min-w-fit flex-1 p-2">
+  <div
+    class="flex w-full cursor-pointer items-center gap-2 bg-muted/50 p-1"
+    onclick={() => toggleOpen()}
+  >
+    <p class="min-w-fit flex-1">
       {material.name}
     </p>
 
-    <div class="flex items-center py-2">
+    <div class="flex items-center">
       <Button variant={editing ? 'default' : 'ghost'} onclick={() => toggleEdit()}>
         <SquarePen />
       </Button>
@@ -111,7 +126,11 @@
 
     <Badge class="opacity-75 not-sm:hidden">{materialType(material.type)}</Badge>
 
-    <div class="w-full not-sm:hidden">{material.family}</div>
+    {#if material.family}
+      <Badge class="opacity-75 not-sm:hidden">{material.family}</Badge>
+    {/if}
+
+    <div class="w-full not-sm:hidden"></div>
 
     {#each material.tags as tag}
       <Badge class="rounded-lg p-0.5 text-xs opacity-75 not-sm:hidden">
@@ -120,13 +139,13 @@
     {/each}
 
     <div class="justify-self-end px-4 not-sm:hidden">
-      {#if expanded}
+      {#if open}
         <ChevronDown size={14} />
       {:else}
         <ChevronRight size={14} />
       {/if}
     </div>
-  </summary>
+  </div>
 
   {#if editing}
     <div class="m-2 flex flex-wrap items-center justify-center gap-1 rounded-md border-t p-2">
@@ -164,7 +183,7 @@
             id="note"
             bind:value={editState.description}
             placeholder="The material that started it all (optional)"
-            class="flex w-full min-w-0 rounded-md border border-input bg-transparent px-3 pt-1.5 text-sm font-medium shadow-xs ring-offset-background transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[1px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
+            class="flex h-64 w-full min-w-0 rounded-md border border-input bg-transparent px-3 pt-1.5 text-sm font-medium shadow-xs ring-offset-background transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[1px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
           ></textarea>
         </div>
       </div>
@@ -241,7 +260,7 @@
     </div>
   {/if}
 
-  {#if expanded && !editing}
+  {#if open && !editing}
     <div class="space-y-2 bg-secondary px-2 py-3 text-sm">
       <!-- EDIT MATERIAL -->
 
@@ -268,4 +287,4 @@
       <MaterialInventory {inventory} {material} />
     </div>
   {/if}
-</details>
+</li>
