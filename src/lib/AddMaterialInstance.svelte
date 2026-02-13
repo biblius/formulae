@@ -8,8 +8,7 @@
   import { cn, df } from './utils';
   import { Calendar } from './components/ui/calendar';
   import { Calendar as CalendarIcon, RefreshCw } from '@lucide/svelte';
-  import { onMount } from 'svelte';
-  import { insertMaterialInstance, materials } from './materials.svelte';
+  import { insertMaterialInstance } from './data/materials.svelte';
 
   let { material, onSubmit }: { material: MaterialAbstract; onSubmit: () => void } = $props();
 

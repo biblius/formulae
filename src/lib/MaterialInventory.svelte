@@ -7,7 +7,7 @@
   import { openUrl } from '@tauri-apps/plugin-opener';
   import Button, { buttonVariants } from './components/ui/button/button.svelte';
   import AddMaterial from './AddMaterial.svelte';
-  import { deleteMaterial } from './materials.svelte';
+  import { deleteMaterial } from './data/materials.svelte';
 
   let {
     material,

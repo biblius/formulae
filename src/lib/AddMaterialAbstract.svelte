@@ -8,7 +8,7 @@
   import type { MaterialAbstractAdd } from './types';
   import MultiInput from './components/MultiInput.svelte';
   import * as Select from './components/ui/select';
-  import { insertMaterialAbstract, MATERIAL_TYPES, materialType } from './materials.svelte';
+  import { insertMaterialAbstract, MATERIAL_TYPES, materialType } from './data/materials.svelte';
 
   let { onSubmit } = $props();
 

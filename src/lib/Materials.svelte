@@ -8,7 +8,7 @@
   import type { MaterialAbstract, Material } from './types';
   import AddMaterialAbstract from './AddMaterialAbstract.svelte';
   import MaterialHistory from './MaterialHistory.svelte';
-  import type { HistoryEntry } from './materials.svelte';
+  import type { HistoryEntry } from './data/materials.svelte';
 
   let {
     materialsAbstract,

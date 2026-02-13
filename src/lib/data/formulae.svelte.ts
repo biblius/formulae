@@ -1,8 +1,8 @@
 import { getLocalTimeZone, now } from '@internationalized/date';
-import { db, insertValues } from './db';
+import { db, insertValues } from '../db';
 import { spendMaterials } from './materials.svelte';
-import type { Formula, FormulaBuilder, FormulaMaterial, FormulaNote } from './types';
-import { date } from './utils';
+import type { Formula, FormulaBuilder, FormulaMaterial, FormulaNote } from '../types';
+import { date } from '../utils';
 
 export type FormulaState = {
   formulae: Formula[];

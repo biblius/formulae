@@ -2,7 +2,7 @@
   import FormulaList from './FormulaList.svelte';
   import FormulaBuilder from './FormulaBuilder.svelte';
   import MaterialHistory from './MaterialHistory.svelte';
-  import type { HistoryEntry } from './materials.svelte';
+  import type { HistoryEntry } from './data/materials.svelte';
   import { ChevronDown, ChevronRight } from '@lucide/svelte';
 
   let showHistory = $state(false);

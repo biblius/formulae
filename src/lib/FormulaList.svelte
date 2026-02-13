@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { formulae } from './formulae.svelte';
+  import { formulae } from './data/formulae.svelte';
   import FormulaListItem from './FormulaListItem.svelte';
 </script>
 

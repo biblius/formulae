@@ -8,7 +8,7 @@
     MATERIAL_TYPES,
     materialType,
     updateMaterialAbstract
-  } from './materials.svelte';
+  } from './data/materials.svelte';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import {

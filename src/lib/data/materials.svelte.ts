@@ -1,5 +1,5 @@
 import { getLocalTimeZone, now } from '@internationalized/date';
-import { db, insertValues } from './db';
+import { db, insertValues } from '../db';
 import type {
   Material,
   MaterialAbstract,
@@ -9,8 +9,8 @@ import type {
   MaterialHistory,
   MaterialInstanceAdd,
   MaterialSpend
-} from './types';
-import { date } from './utils';
+} from '../types';
+import { date } from '../utils';
 
 export type MaterialState = {
   abstract: MaterialAbstract[];

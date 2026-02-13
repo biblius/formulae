@@ -9,7 +9,7 @@
   import { Calendar } from './components/ui/calendar';
   import { Calendar as CalendarIcon, Info, RefreshCw } from '@lucide/svelte';
   import * as Select from './components/ui/select';
-  import { insertMaterialDilution } from './materials.svelte';
+  import { insertMaterialDilution } from './data/materials.svelte';
 
   let {
     inventory,

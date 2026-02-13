@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button } from '$lib/components/ui/button';
-  import { initMaterials, materials } from '$lib/materials.svelte';
+  import { initMaterials, materials } from '$lib/data/materials.svelte';
   import Materials from '$lib/Materials.svelte';
   import Formula from '$lib/Formula.svelte';
   import { check, Update } from '@tauri-apps/plugin-updater';
@@ -8,7 +8,7 @@
   import { onMount } from 'svelte';
   import { Download, X } from '@lucide/svelte';
   import { pf } from '$lib/utils';
-  import { initFormulae } from '$lib/formulae.svelte';
+  import { initFormulae } from '$lib/data/formulae.svelte';
 
   let display: 'materials' | 'formulae' = $state(
     (localStorage.getItem('lastDisplay') as 'materials' | 'formulae') ?? 'materials'

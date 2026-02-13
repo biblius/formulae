@@ -1,5 +1,9 @@
 import { type DateValue } from '@internationalized/date';
-import type { MaterialType, MaterialInstanceType, MaterialTargetType } from './materials.svelte';
+import type {
+  MaterialType,
+  MaterialInstanceType,
+  MaterialTargetType
+} from './data/materials.svelte';
 
 // ============================
 // Materials

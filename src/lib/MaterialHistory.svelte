@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { formulae } from './formulae.svelte';
-  import { materials, type HistoryEntry, type MaterialTargetType } from './materials.svelte';
+  import { formulae } from './data/formulae.svelte';
+  import { materials, type HistoryEntry, type MaterialTargetType } from './data/materials.svelte';
   import { df, gf } from './utils';
 
   let { history }: { history: HistoryEntry<MaterialTargetType>[] } = $props();

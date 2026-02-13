@@ -1,13 +1,13 @@
 <script lang="ts">
   import { Button } from '$lib/components/ui/button';
   import { Label } from '$lib/components/ui/label';
-  import { materials } from '$lib/materials.svelte';
+  import { materials } from '$lib/data/materials.svelte';
   import type { FormulaBuilder, Material, MaterialSpend } from './types';
   import { gf, pf } from './utils';
   import { Info, Plus, X } from '@lucide/svelte';
   import * as DropdownMenu from './components/ui/dropdown-menu/index';
   import { Input } from './components/ui/input';
-  import { insertFormula } from './formulae.svelte';
+  import { insertFormula } from './data/formulae.svelte';
 
   let exceeded = $state<number[]>([]);
   let searching = $state('');
@@ -94,10 +94,6 @@
       return materials.inventory.filter((m) => (m.name ? regex.test(m.name) : false));
     }
     return materials.inventory;
-  }
-
-  function concentration(material: MaterialSpend): number {
-    return material.grams / materialTotal;
   }
 
   function concentrationAbs(material: MaterialSpend) {
