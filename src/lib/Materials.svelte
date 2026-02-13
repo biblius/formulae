@@ -8,13 +8,16 @@
   import type { MaterialAbstract, Material } from './types';
   import AddMaterialAbstract from './AddMaterialAbstract.svelte';
   import MaterialHistory from './MaterialHistory.svelte';
+  import type { HistoryEntry } from './materials.svelte';
 
   let {
     materialsAbstract,
-    materials
+    materials,
+    history
   }: {
     materialsAbstract: MaterialAbstract[];
     materials: Material[];
+    history: HistoryEntry<'DILUTION'>[];
   } = $props();
 
   let searching = $state('');
@@ -66,7 +69,7 @@
 </script>
 
 <main>
-  <h2 class="flex items-center gap-4 border-b">
+  <h2 class="mb-4 flex items-center gap-4 border-b">
     <p class="not-sm:hidden">Materials</p>
     <Input type="search" class="w-64" placeholder="Search by" bind:value={searching} />
 
@@ -90,7 +93,7 @@
     </div>
   </h2>
 
-  <div class="w-full">
+  <div class="max-h-[60vh] min-h-[60vh] w-full overflow-y-auto">
     {#if adding}
       <AddMaterialAbstract onSubmit={() => (adding = false)} />
     {/if}
@@ -101,9 +104,8 @@
         inventory={materials.filter((m) => m.material_id === material.id)}
       />
     {/each}
-
-    <h3 class="border-b">History</h3>
-
-    <MaterialHistory type="DILUTION" />
   </div>
+
+  <h3 class="my-4 border-b">Dilution history</h3>
+  <MaterialHistory {history} />
 </main>

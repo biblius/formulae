@@ -1,6 +1,8 @@
+import { getLocalTimeZone, now } from '@internationalized/date';
 import { db, insertValues } from './db';
 import { spendMaterials } from './materials.svelte';
 import type { Formula, FormulaBuilder, FormulaMaterial, FormulaNote } from './types';
+import { date } from './utils';
 
 export type FormulaState = {
   formulae: Formula[];
@@ -58,10 +60,10 @@ export async function insertFormulaNote(formulaId: number, content: string): Pro
 
   const { lastInsertId: noteId } = await _db.execute(
     `
-      INSERT INTO formula_notes(formula_id, content)
-      VALUES($1, $2);
+      INSERT INTO formula_notes(formula_id, content, created_at)
+      VALUES($1, $2, $3);
     `,
-    [formulaId, content]
+    [formulaId, content, date(now(getLocalTimeZone()))]
   );
 
   const note: FormulaNote[] = await _db.select(

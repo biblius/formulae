@@ -113,7 +113,7 @@ export type MaterialInstanceAdd = {
   batchId: string | null;
   grams: number;
   link: string | null;
-  createdAt: DateValue | undefined;
+  createdAt: DateValue;
   predilution: number | null;
   reset: () => void;
 };
@@ -123,7 +123,7 @@ export type MaterialDilutionAdd = {
   name: string | null;
   gramsMaterial: number;
   gramsTotal: number;
-  createdAt: DateValue | undefined;
+  createdAt: DateValue;
   reset: () => void;
 };
 

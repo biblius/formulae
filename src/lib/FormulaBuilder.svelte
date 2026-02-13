@@ -10,6 +10,7 @@
   import { insertFormula } from './formulae.svelte';
 
   let exceeded = $state<number[]>([]);
+  let searching = $state('');
 
   let formula: FormulaBuilder = $state({
     name: '',
@@ -27,13 +28,28 @@
     }
   });
 
-  let gramsMaterial = $derived(
+  let materialTotal = $derived(
     formula.materials.reduce((acc, material) => acc + material.grams, 0)
   );
-  let available = $derived(
-    formula.targetGrams * (formula.targetConcentration / 100) - gramsMaterial
+
+  let materialDilutionTotal = $derived(
+    formula.materials.reduce((acc, material) => {
+      if (material.original.grams_material != null && material.original.grams_solvent != null) {
+        const ratio =
+          material.original.grams_material /
+          (material.original.grams_material + material.original.grams_solvent);
+        return acc + material.grams * ratio;
+      }
+      return acc + material.grams;
+    }, 0)
   );
-  let concentration = $derived(gramsMaterial / formula.targetGrams);
+
+  let available = $derived(
+    formula.targetGrams * (formula.targetConcentration / 100) - materialTotal
+  );
+
+  let concentrationTotal = $derived(materialTotal / formula.targetGrams);
+  let concentrationDilutionTotal = $derived(materialDilutionTotal / formula.targetGrams);
 
   let saveEnabled = $derived(formula.name && formula.materials.length > 0 && exceeded.length === 0);
 
@@ -70,6 +86,30 @@
     } else {
       exceeded = exceeded.filter((id) => id !== material.original.id);
     }
+  }
+
+  function materialsDisplay() {
+    if (searching) {
+      const regex = new RegExp(searching, 'i');
+      return materials.inventory.filter((m) => (m.name ? regex.test(m.name) : false));
+    }
+    return materials.inventory;
+  }
+
+  function concentration(material: MaterialSpend): number {
+    return material.grams / materialTotal;
+  }
+
+  function concentrationAbs(material: MaterialSpend) {
+    const original = material.original;
+
+    if (original.grams_material != null && original.grams_solvent != null) {
+      let concentration =
+        original.grams_material / (original.grams_material + original.grams_solvent);
+      return (material.grams * concentration) / materialTotal;
+    }
+
+    return material.grams / materialTotal;
   }
 </script>
 
@@ -115,8 +155,16 @@
         <Plus />
       </Button>
     </DropdownMenu.Trigger>
-    <DropdownMenu.Content>
-      {#each materials.inventory as material}
+    <DropdownMenu.Content class="max-h-80 min-h-0 overflow-y-scroll">
+      <div class="p-2">
+        <Input
+          type="search"
+          placeholder="Search inventory"
+          bind:value={searching}
+          onselect={(e) => e.preventDefault()}
+        />
+      </div>
+      {#each materialsDisplay() as material}
         <DropdownMenu.Item
           onclick={() => addToFormula(material)}
           disabled={material.grams_available <= 0}
@@ -155,6 +203,7 @@
       <th class="w-1/4 border p-2 text-center">Material</th>
       <th class="w-1/4 border p-2 text-center">Amount</th>
       <th class="w-1/4 border p-2 text-center">% material</th>
+      <th class="w-1/4 border p-2 text-center">% material (abs)</th>
       <th class="w-1/4 border p-2 text-center">% total</th>
     </tr>
   </thead>
@@ -202,15 +251,25 @@
           {/if}
         </td>
 
-        {#if gramsMaterial !== 0}
-          <td class="border p-2 text-center">
-            {pf.format(material.grams / gramsMaterial)}
-          </td>
-        {:else}
-          <td class="border p-2 text-center">
+        <!-- % MATERIAL -->
+
+        <td class="border p-2 text-center">
+          {#if materialTotal !== 0}
+            {pf.format(material.grams / materialTotal)}
+          {:else}
             {pf.format(0)}
-          </td>
-        {/if}
+          {/if}
+        </td>
+
+        <!-- % MATERIAL ABSOLUTE -->
+
+        <td class="border p-2 text-center">
+          {#if materialTotal !== 0}
+            {pf.format(concentrationAbs(material))}
+          {:else}
+            {pf.format(0)}
+          {/if}
+        </td>
 
         <td class="border p-2 text-center">{pf.format(material.grams / formula.targetGrams)}</td>
       </tr>
@@ -220,10 +279,11 @@
 
     <tr class="text-muted-foreground">
       <td class="border p-2 text-center">Solvent</td>
-      <td class="border p-2 text-center">{gf.format(formula.targetGrams - gramsMaterial)}</td>
+      <td class="border p-2 text-center">{gf.format(formula.targetGrams - materialTotal)}</td>
+      <td class="border p-2 text-center">-</td>
       <td class="border p-2 text-center">-</td>
       <td class="border p-2 text-center"
-        >{pf.format((formula.targetGrams - gramsMaterial) / formula.targetGrams)}</td
+        >{pf.format((formula.targetGrams - materialTotal) / formula.targetGrams)}</td
       >
     </tr>
 
@@ -231,16 +291,21 @@
 
     <tr>
       <td class="border p-2 text-center font-bold">Total</td>
+
       <td class="border p-2 text-center font-bold">{gf.format(formula.targetGrams)}</td>
-      {#if concentration !== formula.targetConcentration / 100}
-        <td class="border p-2 text-center font-bold"
-          >{pf.format(concentration)}/{pf.format(formula.targetConcentration / 100)}</td
-        >
-      {:else}
-        <td class="border p-2 text-center font-bold"
-          >{pf.format(formula.targetConcentration / 100)}
-        </td>
-      {/if}
+
+      <td class="border p-2 text-center font-bold">
+        {#if concentrationTotal !== formula.targetConcentration / 100}
+          {pf.format(concentrationTotal)}/{pf.format(formula.targetConcentration / 100)}
+        {:else}
+          {pf.format(concentrationTotal)}
+        {/if}
+      </td>
+
+      <td class="border p-2 text-center font-bold">
+        {pf.format(concentrationDilutionTotal)}
+      </td>
+
       <td class="border p-2 text-center font-bold">{pf.format(1)}</td>
     </tr>
   </tbody>

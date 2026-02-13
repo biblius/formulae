@@ -169,9 +169,7 @@
               {...props}
             >
               <CalendarIcon class="me-2 size-4" />
-              {state.createdAt
-                ? df.format(state.createdAt.toDate(getLocalTimeZone()))
-                : df.format(new Date())}
+              {df.format(state.createdAt.toDate(getLocalTimeZone()))}
             </Button>
           {/snippet}
         </Popover.Trigger>

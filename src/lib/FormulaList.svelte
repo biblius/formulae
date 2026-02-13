@@ -3,8 +3,8 @@
   import FormulaListItem from './FormulaListItem.svelte';
 </script>
 
-<ul class="divide-y">
+<ul class="max-h-[80vh] divide-y overflow-y-scroll">
   {#each formulae.formulae as formula}
-    <FormulaListItem {formula} />
+    <FormulaListItem bind:formula />
   {/each}
 </ul>

@@ -1,3 +1,4 @@
+import { getLocalTimeZone, now } from '@internationalized/date';
 import { db, insertValues } from './db';
 import type {
   Material,
@@ -14,16 +15,29 @@ import { date } from './utils';
 export type MaterialState = {
   abstract: MaterialAbstract[];
   inventory: Material[];
+  historyD: HistoryEntry<'DILUTION'>[];
+  historyF: HistoryEntry<'FORMULA'>[];
   initialized: boolean;
 
+  /**
+   * Gets a material from inventory.
+   */
   get: (id: number) => Material | undefined;
+  /**
+   * Gets a material definition.
+   */
   getAbstract: (id: number) => MaterialAbstract | undefined;
+  /**
+   * Swaps a material definition.
+   */
   swapAbstract: (material: MaterialAbstract) => void;
 };
 
 export let materials: MaterialState = $state<MaterialState>({
   abstract: [],
   inventory: [],
+  historyD: [],
+  historyF: [],
   initialized: false,
 
   get(id: number): Material | undefined {
@@ -44,8 +58,15 @@ export let materials: MaterialState = $state<MaterialState>({
 
 export async function initMaterials() {
   if (materials.initialized) return;
+
   materials.abstract = await listMaterialsAbstract();
+
   materials.inventory = await listMaterials();
+
+  materials.historyD = await listMaterialHistory('DILUTION');
+
+  materials.historyF = await listMaterialHistory('FORMULA');
+
   materials.initialized = true;
 }
 
@@ -391,28 +412,58 @@ export async function getMaterial(id: number): Promise<Material> {
 export async function spendMaterials(
   target: MaterialTargetType,
   targetId: number,
-  materials: MaterialSpend[]
+  m: MaterialSpend[]
 ) {
   const _db = await db();
+  const created_at = date(now(getLocalTimeZone()));
 
   await insertValues(
     'material_history',
-    ['material_id', 'target_id', 'target_type', 'grams'],
-    materials.map((material) => [material.original.id, targetId, target, material.grams])
+    ['material_id', 'target_id', 'target_type', 'grams', 'created_at'],
+    m.map((material) => [material.original.id, targetId, target, material.grams, created_at])
   );
 
-  for (const material of materials) {
+  for (const material of m) {
     _db.execute(`UPDATE materials SET grams_available = grams_available - $1 WHERE id = $2`, [
       material.grams,
       material.original.id
     ]);
     material.original.grams_available -= material.grams;
   }
+
+  if (target === 'DILUTION') {
+    const entry: HistoryEntry<'DILUTION'> = m.reduce(
+      (acc: HistoryEntry<'DILUTION'>, el) => {
+        acc.materials.push({ id: el.original.id, grams: el.grams });
+        return acc;
+      },
+      { target, target_id: targetId, materials: [], created_at }
+    );
+
+    materials.historyD.unshift(entry);
+  } else {
+    const entry: HistoryEntry<'FORMULA'> = m.reduce(
+      (acc: HistoryEntry<'FORMULA'>, el) => {
+        acc.materials.push({ id: el.original.id, grams: el.grams });
+        return acc;
+      },
+      { target, target_id: targetId, materials: [], created_at }
+    );
+
+    materials.historyF.unshift(entry);
+  }
 }
 
-export async function listMaterialHistory(
-  type: MaterialTargetType
-): Promise<Record<number, MaterialHistory[]>> {
+export type HistoryEntry<T extends MaterialTargetType> = {
+  target: T;
+  target_id: number;
+  materials: { id: number; grams: number }[];
+  created_at: string;
+};
+
+export async function listMaterialHistory<T extends MaterialTargetType>(
+  type: T
+): Promise<HistoryEntry<T>[]> {
   const _db = await db();
 
   const history: MaterialHistory[] = await _db.select(
@@ -420,15 +471,20 @@ export async function listMaterialHistory(
     [type]
   );
 
-  const out: Record<number, MaterialHistory[]> = {};
+  const out: Record<number, HistoryEntry<T>> = {};
 
   for (const item of history) {
     if (out[item.target_id]) {
-      out[item.target_id].push(item);
+      out[item.target_id].materials.push({ id: item.material_id, grams: item.grams });
     } else {
-      out[item.target_id] = [item];
+      out[item.target_id] = {
+        target: type,
+        target_id: item.target_id,
+        materials: [{ id: item.material_id, grams: item.grams }],
+        created_at: item.created_at
+      };
     }
   }
 
-  return out;
+  return Object.values(out);
 }

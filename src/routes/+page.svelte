@@ -1,13 +1,14 @@
 <script lang="ts">
   import { Button } from '$lib/components/ui/button';
   import { initMaterials, materials } from '$lib/materials.svelte';
-  import MaterialList from '$lib/MaterialList.svelte';
+  import Materials from '$lib/Materials.svelte';
   import Formula from '$lib/Formula.svelte';
   import { check, Update } from '@tauri-apps/plugin-updater';
   import { relaunch } from '@tauri-apps/plugin-process';
   import { onMount } from 'svelte';
   import { Download, X } from '@lucide/svelte';
   import { pf } from '$lib/utils';
+  import { initFormulae } from '$lib/formulae.svelte';
 
   let display: 'materials' | 'formulae' = $state(
     (localStorage.getItem('lastDisplay') as 'materials' | 'formulae') ?? 'materials'
@@ -34,7 +35,7 @@
     await update!!.downloadAndInstall((event) => {
       switch (event.event) {
         case 'Started':
-          contentLength = event.data.contentLength;
+          contentLength = event.data.contentLength!!;
           updateStatus = 'Downloading formulae version ' + update!!.version;
           break;
         case 'Progress':
@@ -71,8 +72,10 @@
     console.log(`found update ${update.version} from ${update.date} with notes ${update.body}`);
   }
 
-  onMount(() => {
+  onMount(async () => {
     checkUpdate();
+    initMaterials();
+    initFormulae();
   });
 </script>
 
@@ -110,11 +113,13 @@
     >
   </header>
 
-  {#await initMaterials() then}
-    {#if display === 'materials'}
-      <MaterialList materialsAbstract={materials.abstract} materials={materials.inventory} />
-    {:else}
-      <Formula />
-    {/if}
-  {/await}
+  {#if display === 'materials'}
+    <Materials
+      materialsAbstract={materials.abstract}
+      materials={materials.inventory}
+      history={materials.historyD}
+    />
+  {:else}
+    <Formula history={materials.historyF} />
+  {/if}
 </div>

@@ -96,9 +96,9 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<details class="m-2 border" bind:open={expanded}>
+<details class="m-2 border p-0" bind:open={expanded}>
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <summary class="flex w-full cursor-pointer items-center gap-2 p-2 hover:bg-muted/20">
+  <summary class="flex w-full cursor-pointer items-center gap-2 bg-muted/50 px-2">
     <p class="min-w-fit flex-1 p-2">
       {material.name}
     </p>
@@ -242,7 +242,7 @@
   {/if}
 
   {#if expanded && !editing}
-    <div class="space-y-2 px-2 py-3 text-sm">
+    <div class="space-y-2 bg-secondary px-2 py-3 text-sm">
       <!-- EDIT MATERIAL -->
 
       <div class="flex items-center justify-center">

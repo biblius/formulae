@@ -4,7 +4,7 @@
   import { Button, buttonVariants } from '$lib/components/ui/button';
   import { deleteFormula, insertFormulaNote } from './formulae.svelte';
   import { materials } from './materials.svelte';
-  import { gf, pf } from './utils';
+  import { df, gf, pf } from './utils';
   import FormulaNote from './FormulaNote.svelte';
   import type { Formula, FormulaMaterial } from './types';
 
@@ -12,11 +12,34 @@
   let addingNote = $state<boolean>(false);
   let noteInput = $state<string>('');
 
-  let { formula }: { formula: Formula } = $props();
+  let { formula = $bindable() }: { formula: Formula } = $props();
 
-  let createdAt = $derived(new Date(formula.created_at).toDateString());
+  let createdAt = $derived(df.format(new Date(formula.created_at)));
 
-  let materialTotal = $derived(formula.materials.reduce((acc, m) => acc + m.grams, 0));
+  let materialTotal = $derived(
+    formula.materials.reduce((acc, material) => acc + material.grams, 0)
+  );
+
+  let materialDilutionTotal = $derived(
+    formula.materials.reduce((acc, material) => {
+      console.log(material);
+      const original = materials.get(material.material_id);
+
+      if (!original) {
+        return acc;
+      }
+
+      if (original.grams_material != null && original.grams_solvent != null) {
+        const ratio = original.grams_material / (original.grams_material + original.grams_solvent);
+        return acc + material.grams * ratio;
+      }
+
+      return acc + material.grams;
+    }, 0)
+  );
+
+  let concentrationTotal = $derived(materialTotal / formula.grams_total);
+  let concentrationTotalAbs = $derived(materialDilutionTotal / formula.grams_total);
 
   function toggleOpen() {
     open = !open;
@@ -41,27 +64,11 @@
     cancelAddNote();
   }
 
-  function total(material: FormulaMaterial): number {
-    const original = materials.get(material.material_id);
-
-    if (!original) {
-      return -1;
-    }
-
-    if (original.grams_material != null && original.grams_solvent != null) {
-      let concentration =
-        original.grams_material / (original.grams_material + original.grams_solvent);
-      return material.grams * concentration;
-    }
-
-    return material.grams;
-  }
-
   function concentration(material: FormulaMaterial): number {
     return material.grams / materialTotal;
   }
 
-  function concentrationFull(material: FormulaMaterial): number {
+  function concentrationAbs(material: FormulaMaterial): number {
     const original = materials.get(material.material_id);
 
     if (!original) {
@@ -85,7 +92,7 @@
 
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
-    class="flex w-full cursor-pointer items-center justify-between gap-2 bg-secondary p-2 hover:bg-primary/50"
+    class="flex w-full cursor-pointer items-center justify-between gap-2 bg-muted/50 p-2 hover:bg-primary/50"
     onclick={() => toggleOpen()}
   >
     <div>
@@ -103,7 +110,7 @@
   </div>
 
   {#if open}
-    <div class="p-4">
+    <div class="bg-secondary p-4">
       <div class="m-2 w-full overflow-x-auto">
         <table class="mx-auto w-2/3 border-collapse text-sm">
           <!-- HEADER -->
@@ -114,6 +121,7 @@
               <th class="p-2 pr-2 font-medium">Type</th>
               <th class="p-2 pr-2 font-medium">Amount</th>
               <th class="p-2 pr-2 font-medium">% material</th>
+              <th class="p-2 pr-2 font-medium">% material (abs)</th>
               <th class="p-2 pr-2 font-medium">% total</th>
             </tr>
           </thead>
@@ -125,38 +133,46 @@
               <tr class="border">
                 <td class="p-2 pr-2">{materials.get(material.material_id)?.name}</td>
                 <td class="p-2 pr-2">{materials.get(material.material_id)?.type}</td>
+
                 <!-- GRAMS MATERIAL -->
+
                 <td class="p-2 pr-2 tabular-nums">
                   {gf.format(material.grams)}
                 </td>
+
                 <!-- % MATERIAL -->
-                {#if concentration(material) === concentrationFull(material)}
-                  <td class="p-2 pr-2">{pf.format(concentration(material))}</td>
-                {:else}
-                  <td class="p-2 pr-2"
-                    >{pf.format(concentration(material))} ({pf.format(
-                      concentrationFull(material)
-                    )})</td
-                  >
-                {/if}
+
+                <td class="p-2 pr-2">
+                  {pf.format(concentration(material))}
+                </td>
+
+                <!-- % MATERIAL ABS -->
+
+                <td class="p-2 pr-2">
+                  {pf.format(concentrationAbs(material))}
+                </td>
+
                 <!-- % TOTAL -->
-                {#if material.grams === total(material)}
-                  <td class="p-2 pr-2">{pf.format(material.grams / formula.grams_total)}</td>
-                {:else}
-                  <td class="p-2 pr-2"
-                    >{pf.format(material.grams / formula.grams_total)} ({pf.format(
-                      total(material) / formula.grams_total
-                    )})</td
-                  >
-                {/if}
+
+                <td class="p-2 pr-2">
+                  {pf.format(material.grams / formula.grams_total)}
+                </td>
               </tr>
             {/each}
 
+            <!-- SOLVENT -->
+
             <tr class="border-b text-muted-foreground">
               <td class="p-2">Solvent</td>
+
               <td class="p-2">-</td>
+
               <td class="p-2">{gf.format(formula.grams_total - materialTotal)}</td>
+
               <td class="p-2">-</td>
+
+              <td class="p-2">-</td>
+
               <td class="p-2"
                 >{pf.format((formula.grams_total - materialTotal) / formula.grams_total)}</td
               >
@@ -168,15 +184,17 @@
           <tfoot>
             <tr class="p-2 font-bold">
               <td class="p-2 pr-2">Total</td>
+
               <td class="p-2 pr-2">-</td>
+
               <td class="p-2 pr-2 tabular-nums">
                 {gf.format(formula.grams_total)}
               </td>
-              <td class="p-2 pr-2"
-                >{pf.format(
-                  formula.materials.reduce((acc, m) => acc + m.grams, 0) / formula.grams_total
-                )}</td
-              >
+
+              <td class="p-2 pr-2">{pf.format(concentrationTotal)}</td>
+
+              <td class="p-2 pr-2">{pf.format(concentrationTotalAbs)}</td>
+
               <td class="p-2 pr-2">{pf.format(1)}</td>
             </tr>
           </tfoot>
@@ -226,7 +244,7 @@
       </div>
     </div>
 
-    <div class="flex items-center justify-between p-2">
+    <div class=" flex items-center justify-between bg-secondary p-2">
       <p class="text-muted-foreground">Created {createdAt}</p>
       <Dialog.Root>
         <Dialog.Trigger>
