@@ -159,3 +159,31 @@ export type MaterialHistory = {
   grams: number;
   created_at: string;
 };
+
+// ============================
+// TRIALS
+// ============================
+
+export type Trial = {
+  id: number;
+  name: string;
+  description: string;
+  materials: MaterialAbstract[];
+  notes: TrialNote[];
+  created_at: string;
+};
+
+export type TrialNote = {
+  id: number;
+  trial_id: number;
+  content: string;
+  created_at: string;
+};
+
+export type TrialAdd = {
+  name?: string;
+  description?: string;
+  materials: number[];
+
+  reset: () => void;
+};

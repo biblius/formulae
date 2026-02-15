@@ -29,6 +29,7 @@
   import MultiInput from './components/MultiInput.svelte';
   import MaterialInventory from './MaterialInventory.svelte';
   import { tick } from 'svelte';
+  import Textarea from './components/Textarea.svelte';
 
   let {
     material,
@@ -46,7 +47,7 @@
     if (open) {
       await tick(); // wait for expanded DOM
       document.getElementById(`material-${material.id}`)?.scrollIntoView({
-        behavior: 'smooth',
+        behavior: 'instant',
         block: 'start'
       });
     }
@@ -108,13 +109,13 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<li id={`material-${material.id}`} class="m-2 border">
+<li id={`material-${material.id}`} class="m-2 rounded-md border border-muted">
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
-    class="flex w-full cursor-pointer items-center gap-2 bg-muted/50 p-1"
+    class="flex w-full cursor-pointer items-center gap-2 bg-secondary/50 p-1 not-sm:flex-wrap not-sm:justify-center not-sm:text-center hover:bg-primary/10"
     onclick={() => toggleOpen()}
   >
-    <p class="min-w-fit flex-1">
+    <p class="flex-1 px-2 not-sm:min-w-fit not-sm:wrap-break-word sm:min-w-64 sm:wrap-anywhere">
       {material.name}
     </p>
 
@@ -179,12 +180,10 @@
       <div class="flex w-full items-center justify-center">
         <div class="w-1/2">
           <Label for="note" class="text-xs">Description</Label>
-          <textarea
-            id="note"
+          <Textarea
             bind:value={editState.description}
             placeholder="The material that started it all (optional)"
-            class="flex h-64 w-full min-w-0 rounded-md border border-input bg-transparent px-3 pt-1.5 text-sm font-medium shadow-xs ring-offset-background transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[1px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
-          ></textarea>
+          />
         </div>
       </div>
 
@@ -261,7 +260,7 @@
   {/if}
 
   {#if open && !editing}
-    <div class="space-y-2 bg-secondary px-2 py-3 text-sm">
+    <div class="space-y-2 bg-muted/75 px-2 py-3 text-sm">
       <!-- EDIT MATERIAL -->
 
       <div class="flex items-center justify-center">

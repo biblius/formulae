@@ -33,6 +33,16 @@ export type MaterialState = {
   swapAbstract: (material: MaterialAbstract) => void;
 };
 
+type MaterialIndices = {
+  abstract: Record<number, MaterialAbstract>;
+  inventory: Record<number, Material>;
+};
+
+let indices = $state<MaterialIndices>({
+  abstract: {},
+  inventory: {}
+});
+
 export let materials: MaterialState = $state<MaterialState>({
   abstract: [],
   inventory: [],
@@ -41,17 +51,34 @@ export let materials: MaterialState = $state<MaterialState>({
   initialized: false,
 
   get(id: number): Material | undefined {
-    return this.inventory.find((m) => m.id === id);
+    if (indices.inventory[id]) {
+      console.log('inventory index hit', id);
+      return indices.inventory[id];
+    }
+    const material = this.inventory.find((m) => m.id === id);
+    if (material) {
+      indices.inventory[id] = material;
+    }
+    return material;
   },
 
   getAbstract(id: number): MaterialAbstract | undefined {
-    return this.abstract.find((m) => m.id === id);
+    if (indices.abstract[id]) {
+      console.log('abstract index hit', id);
+      return indices.abstract[id];
+    }
+    const material = this.abstract.find((m) => m.id === id);
+    if (material) {
+      indices.abstract[id] = material;
+    }
+    return material;
   },
 
   swapAbstract(material: MaterialAbstract) {
     const i = this.abstract.findIndex((m) => m.id === material.id);
     if (i !== -1) {
       this.abstract[i] = material;
+      indices.abstract[material.id] = material;
     }
   }
 });
@@ -61,7 +88,15 @@ export async function initMaterials() {
 
   materials.abstract = await listMaterialsAbstract();
 
+  for (const material of materials.abstract) {
+    indices.abstract[material.id] = material;
+  }
+
   materials.inventory = await listMaterials();
+
+  for (const material of materials.inventory) {
+    indices.inventory[material.id] = material;
+  }
 
   materials.historyD = await listMaterialHistory('DILUTION');
 
@@ -131,6 +166,7 @@ export async function insertMaterialAbstract(
   const material = await getMaterialAbstract(materialId!!);
 
   materials.abstract.unshift(material);
+  indices.abstract[material.id] = material;
 
   return material;
 }
@@ -187,6 +223,7 @@ export async function insertMaterialInstance(
   const material = await getMaterial(lastInsertId!!);
 
   materials.inventory.push(material);
+  indices.inventory[material.id] = material;
 
   return material;
 }
@@ -239,6 +276,7 @@ export async function insertMaterialDilution(state: MaterialDilutionAdd): Promis
   const dilution = await getMaterial(dilutionId!!);
 
   materials.inventory.push(dilution);
+  indices.inventory[dilution.id] = dilution;
 
   await spendMaterials('DILUTION', dilutionId!!, spend);
 
@@ -341,12 +379,14 @@ export async function deleteMaterialAbstract(id: number) {
   await _db.execute('DELETE FROM materials_abstract WHERE id = $1', [id]);
   materials.abstract = materials.abstract.filter((m) => m.id !== id);
   materials.inventory = materials.inventory.filter((m) => m.material_id !== id);
+  delete indices.abstract[id];
 }
 
 export async function deleteMaterial(id: number) {
   const _db = await db();
   await _db.execute('DELETE FROM materials WHERE id = $1', [id]);
   materials.inventory = materials.inventory.filter((m) => m.id !== id);
+  delete indices.inventory[id];
 }
 
 export async function getMaterialAbstract(id: number): Promise<MaterialAbstract> {
@@ -470,8 +510,6 @@ export async function listMaterialHistory<T extends MaterialTargetType>(
     `SELECT id, material_id, target_id, target_type, grams, created_at FROM material_history WHERE target_type = $1`,
     [type]
   );
-
-  console.log(history);
 
   const out: Record<number, HistoryEntry<T>> = {};
 

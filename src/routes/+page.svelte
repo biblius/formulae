@@ -9,12 +9,15 @@
   import { Download, X } from '@lucide/svelte';
   import { pf } from '$lib/utils';
   import { initFormulae } from '$lib/data/formulae.svelte';
+  import Settings from '$lib/Settings.svelte';
+  import Trials from '$lib/Trials.svelte';
+  import { initTrials, trials } from '$lib/data/trials.svelte';
 
-  let display: 'materials' | 'formulae' = $state(
-    (localStorage.getItem('lastDisplay') as 'materials' | 'formulae') ?? 'materials'
-  );
+  type Display = 'materials' | 'formulae' | 'trials';
 
-  function selectDisplay(value: 'materials' | 'formulae') {
+  let display: Display = $state((localStorage.getItem('lastDisplay') as Display) ?? 'materials');
+
+  function selectDisplay(value: Display) {
     localStorage.setItem('lastDisplay', value);
     display = value;
   }
@@ -76,6 +79,7 @@
     checkUpdate();
     initMaterials();
     initFormulae();
+    initTrials();
   });
 </script>
 
@@ -111,6 +115,11 @@
       variant={display === 'formulae' ? 'default' : 'outline'}
       onclick={() => selectDisplay('formulae')}>Formulae</Button
     >
+    <Button
+      variant={display === 'trials' ? 'default' : 'outline'}
+      onclick={() => selectDisplay('trials')}>Trials</Button
+    >
+    <Settings />
   </header>
 
   {#if display === 'materials'}
@@ -119,7 +128,9 @@
       materials={materials.inventory}
       history={materials.historyD}
     />
-  {:else}
+  {:else if display === 'formulae'}
     <Formula history={materials.historyF} />
+  {:else if display === 'trials'}
+    <Trials bind:trials={trials.trials} materials={materials.abstract} />
   {/if}
 </div>

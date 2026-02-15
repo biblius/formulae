@@ -9,6 +9,7 @@
   import MultiInput from './components/MultiInput.svelte';
   import * as Select from './components/ui/select';
   import { insertMaterialAbstract, MATERIAL_TYPES, materialType } from './data/materials.svelte';
+  import Textarea from './components/Textarea.svelte';
 
   let { onSubmit } = $props();
 
@@ -85,12 +86,10 @@
   <div class="flex w-full items-center justify-center">
     <div class="w-1/2">
       <Label for="note" class="text-xs">Description</Label>
-      <textarea
-        id="note"
+      <Textarea
         bind:value={state.description}
         placeholder="The material that started it all (optional)"
-        class="flex h-64 w-full min-w-0 rounded-md border border-input bg-transparent px-3 pt-1.5 text-sm font-medium shadow-xs ring-offset-background transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[1px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
-      ></textarea>
+      />
     </div>
   </div>
 

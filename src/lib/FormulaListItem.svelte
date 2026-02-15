@@ -8,6 +8,7 @@
   import FormulaNote from './FormulaNote.svelte';
   import type { Formula, FormulaMaterial } from './types';
   import { tick } from 'svelte';
+  import Textarea from './components/Textarea.svelte';
 
   let open = $state<boolean>(false);
   let addingNote = $state<boolean>(false);
@@ -46,7 +47,7 @@
     if (open) {
       await tick(); // wait for expanded DOM
       document.getElementById(`formula-${formula.id}`)?.scrollIntoView({
-        behavior: 'smooth',
+        behavior: 'instant',
         block: 'start'
       });
     }
@@ -94,12 +95,12 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<li id={`formula-${formula.id}`} class="m-2 border">
+<li id={`formula-${formula.id}`} class="m-2 border border-muted">
   <!-- HEADER -->
 
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
-    class="flex w-full cursor-pointer items-center justify-between gap-2 bg-muted/50 p-2 hover:bg-primary/50"
+    class="flex w-full cursor-pointer items-center justify-between gap-2 bg-secondary/50 p-2 hover:bg-primary/10"
     onclick={() => toggleOpen()}
   >
     <div>
@@ -117,7 +118,7 @@
   </div>
 
   {#if open}
-    <div class="bg-secondary p-4">
+    <div class="bg-muted/75 p-4">
       <div class="m-2 w-full overflow-x-auto">
         <table class="mx-auto w-2/3 border-collapse text-sm">
           <!-- HEADER -->
@@ -221,12 +222,7 @@
 
         {#if addingNote}
           <div class="m-2 flex w-1/2 flex-wrap justify-center">
-            <textarea
-              class="h-40 w-full resize-y rounded-md border p-2 text-sm"
-              rows="3"
-              placeholder="Write a note…"
-              bind:value={noteInput}
-            ></textarea>
+            <Textarea placeholder="Write a note…" bind:value={noteInput} />
 
             <div class="flex gap-2 p-2">
               <Button size="icon-sm" onclick={() => saveNote()}><Check /></Button>
@@ -251,7 +247,7 @@
       </div>
     </div>
 
-    <div class=" flex items-center justify-between bg-secondary p-2">
+    <div class=" flex items-center justify-between bg-muted/75 p-2">
       <p class="text-muted-foreground">Created {createdAt}</p>
       <Dialog.Root>
         <Dialog.Trigger>
@@ -259,7 +255,7 @@
         </Dialog.Trigger>
         <Dialog.Content>
           <Dialog.Header>
-            <Dialog.Title>Delete {formula.name}?</Dialog.Title>
+            <Dialog.Title>Delete formula {formula.name}?</Dialog.Title>
             <Dialog.Description>This action cannot be undone.</Dialog.Description>
           </Dialog.Header>
 

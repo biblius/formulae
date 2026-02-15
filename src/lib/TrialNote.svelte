@@ -2,12 +2,11 @@
   import { Check, SquarePen, Trash, X } from '@lucide/svelte';
   import { Button } from '$lib/components/ui/button';
   import { deleteFormulaNote, updateFormulaNote } from './data/formulae.svelte';
-  import type { FormulaNote } from './types';
+  import type { TrialNote } from './types';
   import { dtf } from './utils';
   import Textarea from './components/Textarea.svelte';
-  import { updateTrialNote } from './data/trials.svelte';
 
-  let { note = $bindable() }: { note: FormulaNote } = $props();
+  let { note = $bindable() }: { note: TrialNote } = $props();
   let editing = $state(false);
   let lastContent: string | null = $state(null);
 
@@ -15,7 +14,7 @@
     const content = note.content?.trim();
     if (!content) return;
 
-    await updateTrialNote(note.id, content);
+    await updateFormulaNote(note.id, content);
 
     editing = false;
     lastContent = null;
@@ -34,7 +33,7 @@
   }
 
   async function deleteNote() {
-    await deleteFormulaNote(note.formula_id, note.id);
+    await deleteFormulaNote(note.trial_id, note.id);
   }
 </script>
 

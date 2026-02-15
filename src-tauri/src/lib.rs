@@ -16,6 +16,13 @@ pub fn run() {
             sql: include_str!("../../migrations/20260212211043_remove_subfamily.up.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 3,
+            description: "Add scent strip trials",
+
+            sql: include_str!("../../migrations/20260214122708_trials.up.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

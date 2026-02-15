@@ -73,7 +73,7 @@ export async function insertFormulaNote(formulaId: number, content: string): Pro
     [noteId]
   );
 
-  formulae.formulae.find((f) => f.id === formulaId)?.notes.push(note[0]!!);
+  formulae.formulae.find((f) => f.id === formulaId)?.notes.unshift(note[0]!!);
 
   return note[0];
 }
