@@ -48,6 +48,14 @@
       return;
     }
 
+    if (state.tagInput) {
+      state.tags.push(state.tagInput);
+    }
+
+    if (state.linkInput) {
+      state.links.push(state.linkInput);
+    }
+
     await insertMaterialAbstract(state);
 
     state.reset();
@@ -98,7 +106,7 @@
       <Label for="tags" class="text-xs">Tags</Label>
       <MultiInput
         bind:container={state.tags}
-        input={state.tagInput}
+        bind:input={state.tagInput}
         placeholder="Woody (optional)"
       />
     </div>
@@ -139,7 +147,7 @@
       <Label for="link" class="text-xs">Links</Label>
       <MultiInput
         bind:container={state.links}
-        input={state.linkInput}
+        bind:input={state.linkInput}
         placeholder="https://fraterworks.com (optional)"
       />
     </div>

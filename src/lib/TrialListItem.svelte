@@ -2,12 +2,13 @@
   import * as Dialog from './components/ui/dialog';
   import { Check, Trash, X } from '@lucide/svelte';
   import { deleteTrial, insertTrialNote } from './data/trials.svelte';
-  import type { Trial } from './types';
+  import type { MaterialAbstract, Trial } from './types';
   import { Button, buttonVariants } from '$lib/components/ui/button';
   import Textarea from './components/Textarea.svelte';
   import TrialNote from './TrialNote.svelte';
   import { tick } from 'svelte';
-  import { df } from './utils';
+  import { dtf } from './utils';
+  import { materials, materialType } from './data/materials.svelte';
 
   let { trial = $bindable() }: { trial: Trial } = $props();
 
@@ -15,7 +16,11 @@
   let addingNote = $state(false);
   let noteInput = $state('');
 
-  let createdAt = $derived(df.format(new Date(trial.created_at)));
+  let createdAt = $derived(dtf.format(new Date(trial.created_at)));
+
+  let trialMaterials: MaterialAbstract[] = $derived.by(() => {
+    return trial.materials.map((m) => materials.getAbstract(m)).filter((m) => !!m);
+  });
 
   async function toggleOpen() {
     open = !open;
@@ -48,7 +53,7 @@
   }
 </script>
 
-<li id={`trial-${trial.id}`} class="m-2 border border-muted">
+<li id={`trial-${trial.id}`} class="mx-auto my-2 w-2/3 border border-muted">
   <!-- HEADER -->
 
   <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -81,14 +86,22 @@
             <tr class="text-muted-foreground">
               <th class=" border p-2 font-medium">Material</th>
               <th class=" border p-2 font-medium">Type</th>
+              <th class=" border p-2 font-medium">Family</th>
+              <th class=" border p-2 font-medium">Tags</th>
             </tr>
           </thead>
 
-          <tbody>
-            {#each trial.materials as material}
+          <tbody class="text-center">
+            {#each trialMaterials as material}
               <tr class="border">
                 <td class="border p-2">{material.name}</td>
-                <td class="border p-2">{material.type}</td>
+                <td class="border p-2">{materialType(material.type)}</td>
+                <td class="border p-2">{material.family}</td>
+                <td class="border p-2 text-xs wrap-break-word">
+                  {#each material.tags as tag, i}
+                    {tag}{#if i < material.tags.length - 1},{/if}
+                  {/each}
+                </td>
               </tr>
             {/each}
           </tbody>

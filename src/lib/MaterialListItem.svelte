@@ -83,6 +83,16 @@
   }
 
   async function updateMaterial() {
+    console.log(editState);
+
+    if (editState.tagInput) {
+      editState.tags.push(editState.tagInput);
+    }
+
+    if (editState.linkInput) {
+      editState.links.push(editState.linkInput);
+    }
+
     await updateMaterialAbstract(material.id, editState);
 
     cancelEdit();
@@ -109,21 +119,22 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<li id={`material-${material.id}`} class="m-2 rounded-md border border-muted">
+<li
+  id={`material-${material.id}`}
+  class="mx-auto my-2 w-5/6 rounded-md border border-muted not-sm:w-full"
+>
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     class="flex w-full cursor-pointer items-center gap-2 bg-secondary/50 p-1 not-sm:flex-wrap not-sm:justify-center not-sm:text-center hover:bg-primary/10"
     onclick={() => toggleOpen()}
   >
-    <p class="flex-1 px-2 not-sm:min-w-fit not-sm:wrap-break-word sm:min-w-64 sm:wrap-anywhere">
+    <p class="max-w-fit flex-1 px-2 wrap-anywhere">
       {material.name}
     </p>
 
-    <div class="flex items-center">
-      <Button variant={editing ? 'default' : 'ghost'} onclick={() => toggleEdit()}>
-        <SquarePen />
-      </Button>
-    </div>
+    <Button variant={editing ? 'default' : 'ghost'} onclick={() => toggleEdit()}>
+      <SquarePen />
+    </Button>
 
     <Badge class="opacity-75 not-sm:hidden">{materialType(material.type)}</Badge>
 
@@ -131,15 +142,15 @@
       <Badge class="opacity-75 not-sm:hidden">{material.family}</Badge>
     {/if}
 
-    <div class="w-full not-sm:hidden"></div>
-
     {#each material.tags as tag}
-      <Badge class="rounded-lg p-0.5 text-xs opacity-75 not-sm:hidden">
-        {tag}
-      </Badge>
+      <div class="flex not-sm:hidden not-md:flex-wrap">
+        <Badge class="rounded-lg p-0.5 text-xs opacity-75 ">
+          {tag}
+        </Badge>
+      </div>
     {/each}
 
-    <div class="justify-self-end px-4 not-sm:hidden">
+    <div class="justify-self-end px-4 not-md:hidden">
       {#if open}
         <ChevronDown size={14} />
       {:else}
@@ -213,7 +224,7 @@
       <div class="flex w-full items-center justify-center">
         <div class="w-1/2">
           <Label for="link" class="text-xs">Tags</Label>
-          <MultiInput bind:container={editState.tags} input={editState.tagInput} />
+          <MultiInput bind:container={editState.tags} bind:input={editState.tagInput} />
         </div>
       </div>
 
@@ -222,7 +233,7 @@
           <Label for="link" class="text-xs">Links</Label>
           <MultiInput
             bind:container={editState.links}
-            input={editState.linkInput}
+            bind:input={editState.linkInput}
             placeholder="https://fraterworks.com (optional)"
           />
         </div>
@@ -261,6 +272,8 @@
 
   {#if open && !editing}
     <div class="space-y-2 bg-muted/75 px-2 py-3 text-sm">
+      <MaterialInventory {inventory} {material} />
+
       <!-- EDIT MATERIAL -->
 
       <div class="flex items-center justify-center">
@@ -282,8 +295,6 @@
           {/each}
         </div>
       {/if}
-
-      <MaterialInventory {inventory} {material} />
     </div>
   {/if}
 </li>

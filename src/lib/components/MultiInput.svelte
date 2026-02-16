@@ -5,7 +5,7 @@
 
   let {
     container = $bindable(),
-    input,
+    input = $bindable(),
     placeholder = ''
   }: { container: string[]; input: string; placeholder?: string } = $props();
 </script>

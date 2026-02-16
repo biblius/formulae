@@ -168,7 +168,7 @@ export type Trial = {
   id: number;
   name: string;
   description: string;
-  materials: MaterialAbstract[];
+  materials: number[];
   notes: TrialNote[];
   created_at: string;
 };

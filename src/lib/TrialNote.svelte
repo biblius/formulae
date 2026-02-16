@@ -1,10 +1,10 @@
 <script lang="ts">
   import { Check, SquarePen, Trash, X } from '@lucide/svelte';
   import { Button } from '$lib/components/ui/button';
-  import { deleteFormulaNote, updateFormulaNote } from './data/formulae.svelte';
   import type { TrialNote } from './types';
   import { dtf } from './utils';
   import Textarea from './components/Textarea.svelte';
+  import { deleteTrialNote, updateTrialNote } from './data/trials.svelte';
 
   let { note = $bindable() }: { note: TrialNote } = $props();
   let editing = $state(false);
@@ -12,15 +12,20 @@
 
   async function saveNote() {
     const content = note.content?.trim();
+
     if (!content) return;
 
-    await updateFormulaNote(note.id, content);
+    await updateTrialNote(note.id, content);
 
     editing = false;
     lastContent = null;
   }
 
   function startEditNote() {
+    if (editing) {
+      cancelEditNote();
+      return;
+    }
     lastContent = note.content;
     editing = true;
   }
@@ -33,13 +38,16 @@
   }
 
   async function deleteNote() {
-    await deleteFormulaNote(note.trial_id, note.id);
+    await deleteTrialNote(note.trial_id, note.id);
   }
 </script>
 
 <div class="flex w-full items-center gap-2 text-sm">
-  <Button class="ml-4" size="icon-sm" variant="ghost" onclick={() => startEditNote()}
-    ><SquarePen /></Button
+  <Button
+    class="ml-4"
+    size="icon-sm"
+    variant={editing ? 'default' : 'ghost'}
+    onclick={() => startEditNote()}><SquarePen /></Button
   >
   {#if editing}
     <Textarea rows={5} placeholder="Write a note…" bind:value={note.content} />

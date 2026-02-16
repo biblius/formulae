@@ -77,9 +77,9 @@
 
   onMount(async () => {
     checkUpdate();
-    initMaterials();
-    initFormulae();
-    initTrials();
+    await initMaterials();
+    await initFormulae();
+    await initTrials();
   });
 </script>
 

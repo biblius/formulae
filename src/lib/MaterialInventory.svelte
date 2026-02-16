@@ -42,7 +42,7 @@
   {#if inventory.length === 0}
     <div class="text-sm text-muted-foreground italic">No inventory available</div>
   {:else}
-    <div class="w-3/4 overflow-x-auto">
+    <div class="w-full overflow-x-auto">
       <table class="my-6 w-full border-collapse">
         <thead>
           <tr class="bg-primary/10">

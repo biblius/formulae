@@ -6,14 +6,11 @@ import { date } from '../utils';
 
 export type FormulaState = {
   formulae: Formula[];
-  initialized: boolean;
-
   get: (id: number) => Formula | undefined;
 };
 
 export let formulae: FormulaState = $state<FormulaState>({
   formulae: [],
-  initialized: false,
 
   get(id: number) {
     return this.formulae.find((f) => f.id === id);
@@ -21,9 +18,7 @@ export let formulae: FormulaState = $state<FormulaState>({
 });
 
 export async function initFormulae() {
-  if (formulae.initialized) return;
   formulae.formulae = await listFormulae();
-  formulae.initialized = true;
 }
 
 export async function insertFormula(state: FormulaBuilder): Promise<Formula> {

@@ -6,22 +6,14 @@ import { date } from '$lib/utils';
 
 export type TrialState = {
   trials: Trial[];
-  initialized: boolean;
 };
 
 export let trials: TrialState = $state<TrialState>({
-  trials: [],
-  initialized: false
+  trials: []
 });
 
 export async function initTrials() {
-  if (trials.initialized) return;
-
   trials.trials = await listTrials();
-
-  console.log(trials.trials);
-
-  trials.initialized = true;
 }
 
 export async function insertTrial(data: TrialAdd) {
@@ -130,11 +122,8 @@ export async function listTrials(): Promise<Trial[]> {
       [trialRow.id]
     );
 
-    for (const id of materialIds) {
-      const m = materials.getAbstract(id.material_id);
-      if (m) {
-        trial.materials.push(m);
-      }
+    for (const { material_id } of materialIds) {
+      trial.materials.push(material_id);
     }
 
     out.push(trial);

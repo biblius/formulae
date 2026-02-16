@@ -95,7 +95,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<li id={`formula-${formula.id}`} class="m-2 border border-muted">
+<li id={`formula-${formula.id}`} class="mx-auto my-2 w-5/6 border border-muted not-sm:w-full">
   <!-- HEADER -->
 
   <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -212,7 +212,7 @@
       <!-- Notes -->
 
       <div class="flex w-full flex-wrap justify-center overflow-x-auto text-sm">
-        <div class="my-2 w-full text-center">
+        <div class="my-2 w-full border-b text-left">
           <span class="text-muted-foreground">Notes</span>
         </div>
 

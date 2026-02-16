@@ -17,7 +17,6 @@ export type MaterialState = {
   inventory: Material[];
   historyD: HistoryEntry<'DILUTION'>[];
   historyF: HistoryEntry<'FORMULA'>[];
-  initialized: boolean;
 
   /**
    * Gets a material from inventory.
@@ -48,7 +47,6 @@ export let materials: MaterialState = $state<MaterialState>({
   inventory: [],
   historyD: [],
   historyF: [],
-  initialized: false,
 
   get(id: number): Material | undefined {
     if (indices.inventory[id]) {
@@ -77,15 +75,17 @@ export let materials: MaterialState = $state<MaterialState>({
   swapAbstract(material: MaterialAbstract) {
     const i = this.abstract.findIndex((m) => m.id === material.id);
     if (i !== -1) {
+      console.log($state.snapshot(this.abstract[i]));
       this.abstract[i] = material;
+      console.log($state.snapshot(this.abstract[i]));
+      console.log($state.snapshot(indices.abstract[i]));
       indices.abstract[material.id] = material;
+      console.log($state.snapshot(indices.abstract[i]));
     }
   }
 });
 
 export async function initMaterials() {
-  if (materials.initialized) return;
-
   materials.abstract = await listMaterialsAbstract();
 
   for (const material of materials.abstract) {
@@ -101,8 +101,6 @@ export async function initMaterials() {
   materials.historyD = await listMaterialHistory('DILUTION');
 
   materials.historyF = await listMaterialHistory('FORMULA');
-
-  materials.initialized = true;
 }
 
 /**

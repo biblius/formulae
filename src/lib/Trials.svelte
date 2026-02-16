@@ -92,6 +92,7 @@
     <div class="w-1/2">
       <Label class="text-xs">Description</Label>
       <Textarea
+        rows={6}
         oninput={() => {
           if (trialAdd.description) {
             descriptionValid = true;
