@@ -126,6 +126,8 @@ export async function listTrials(): Promise<Trial[]> {
       trial.materials.push(material_id);
     }
 
+    trial.notes.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf());
+
     out.push(trial);
   }
 

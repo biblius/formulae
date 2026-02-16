@@ -39,6 +39,7 @@
 
   async function deleteNote() {
     await deleteTrialNote(note.trial_id, note.id);
+    cancelEditNote();
   }
 </script>
 
