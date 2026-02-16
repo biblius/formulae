@@ -8,17 +8,18 @@
 
   let { note = $bindable() }: { note: TrialNote } = $props();
   let editing = $state(false);
-  let lastContent: string | null = $state(null);
+  let noteInput: string = $state('');
 
   async function saveNote() {
-    const content = note.content?.trim();
+    const content = noteInput?.trim();
 
     if (!content) return;
 
-    await updateTrialNote(note.id, content);
+    await updateTrialNote(note.id, noteInput);
 
-    editing = false;
-    lastContent = null;
+    note.content = noteInput;
+
+    cancelEditNote();
   }
 
   function startEditNote() {
@@ -26,14 +27,12 @@
       cancelEditNote();
       return;
     }
-    lastContent = note.content;
+    noteInput = note.content;
     editing = true;
   }
 
   function cancelEditNote() {
-    if (lastContent != null) {
-      note.content = lastContent;
-    }
+    noteInput = '';
     editing = false;
   }
 
@@ -51,7 +50,7 @@
     onclick={() => startEditNote()}><SquarePen /></Button
   >
   {#if editing}
-    <Textarea rows={5} placeholder="Write a note…" bind:value={note.content} />
+    <Textarea rows={5} placeholder="Write a note…" bind:value={noteInput} />
 
     <div class="flex gap-2 p-2">
       <Button size="icon-sm" onclick={() => saveNote()}><Check /></Button>
