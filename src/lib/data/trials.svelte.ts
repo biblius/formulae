@@ -79,10 +79,7 @@ export async function getTrial(id: number): Promise<Trial | null> {
   );
 
   for (const { material_id } of materialIds) {
-    const m = materials.getAbstract(material_id);
-    if (m) {
-      trial.materials.push(m);
-    }
+    trial.materials.push(material_id);
   }
 
   return trial;
@@ -130,6 +127,8 @@ export async function listTrials(): Promise<Trial[]> {
 
     out.push(trial);
   }
+
+  out.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf());
 
   return out;
 }

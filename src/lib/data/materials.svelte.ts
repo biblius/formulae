@@ -75,12 +75,8 @@ export let materials: MaterialState = $state<MaterialState>({
   swapAbstract(material: MaterialAbstract) {
     const i = this.abstract.findIndex((m) => m.id === material.id);
     if (i !== -1) {
-      console.log($state.snapshot(this.abstract[i]));
       this.abstract[i] = material;
-      console.log($state.snapshot(this.abstract[i]));
-      console.log($state.snapshot(indices.abstract[i]));
       indices.abstract[material.id] = material;
-      console.log($state.snapshot(indices.abstract[i]));
     }
   }
 });
