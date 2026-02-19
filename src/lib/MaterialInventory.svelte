@@ -1,27 +1,22 @@
 <script lang="ts">
   import * as Dialog from './components/ui/dialog';
-  import { ExternalLink, Plus, Trash } from '@lucide/svelte';
+  import { ExternalLink, Plus, Trash, Undo } from '@lucide/svelte';
 
-  import type { MaterialAbstract, Material } from './types';
+  import type { MaterialAbstract } from './types';
   import { df, gf, pf } from './utils';
   import { openUrl } from '@tauri-apps/plugin-opener';
   import Button, { buttonVariants } from './components/ui/button/button.svelte';
   import AddMaterial from './AddMaterial.svelte';
-  import { deleteMaterial } from './data/materials.svelte';
+  import { deleteMaterial, materials, undoDilution } from './data/materials.svelte';
 
   let {
-    material,
-    inventory
+    material
   }: {
     material: MaterialAbstract;
-    inventory: Material[];
   } = $props();
 
+  let inventory = $derived(materials.inventory.filter((m) => m.material_id === material.id));
   let adding = $state(false);
-
-  async function removeMaterial(id: number) {
-    await deleteMaterial(id);
-  }
 </script>
 
 <div class="m-2 flex flex-wrap justify-center space-y-2">
@@ -66,6 +61,39 @@
                   {inventoryMaterial.name ?? material.name}
                 </p>
 
+                {#if inventoryMaterial.grams_material != null}
+                  <Dialog.Root>
+                    <Dialog.Trigger>
+                      <Button size="icon-sm" variant="ghost" class="hover:text-destructive"
+                        ><Undo /></Button
+                      >
+                    </Dialog.Trigger>
+                    <Dialog.Content>
+                      <Dialog.Header>
+                        <Dialog.Title
+                          >Undo dilution {inventoryMaterial.name ??
+                            'Unnamed material'}?</Dialog.Title
+                        >
+                        <Dialog.Description
+                          >This will delete the dilution and restore the material used to create it.
+                          This action cannot be undone.</Dialog.Description
+                        >
+                      </Dialog.Header>
+
+                      <Dialog.Footer>
+                        <Dialog.Close class={buttonVariants({ variant: 'default' })}
+                          >Cancel</Dialog.Close
+                        >
+                        <Button
+                          type="submit"
+                          variant="destructive"
+                          onclick={() => undoDilution(inventoryMaterial.id)}>Undo</Button
+                        >
+                      </Dialog.Footer>
+                    </Dialog.Content>
+                  </Dialog.Root>
+                {/if}
+
                 <Dialog.Root>
                   <Dialog.Trigger>
                     <Button size="icon-sm" variant="ghost" class="hover:text-destructive"
@@ -87,7 +115,7 @@
                       <Button
                         type="submit"
                         variant="destructive"
-                        onclick={() => removeMaterial(inventoryMaterial.id)}>Delete</Button
+                        onclick={() => deleteMaterial(inventoryMaterial.id)}>Delete</Button
                       >
                     </Dialog.Footer>
                   </Dialog.Content>

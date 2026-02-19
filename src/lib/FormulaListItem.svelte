@@ -1,8 +1,13 @@
 <script lang="ts">
   import * as Dialog from './components/ui/dialog';
-  import { Check, Trash, X } from '@lucide/svelte';
+  import { Check, Trash, Undo, X } from '@lucide/svelte';
   import { Button, buttonVariants } from '$lib/components/ui/button';
-  import { deleteFormula, insertFormulaNote } from './data/formulae.svelte';
+  import {
+    deleteFormula,
+    insertFormulaNote,
+    undoFormula,
+    type FormulaType
+  } from './data/formulae.svelte';
   import { materials } from './data/materials.svelte';
   import { df, gf, pf } from './utils';
   import FormulaNote from './FormulaNote.svelte';
@@ -14,7 +19,10 @@
   let addingNote = $state<boolean>(false);
   let noteInput = $state<string>('');
 
-  let { formula = $bindable() }: { formula: Formula } = $props();
+  let deleteDialogOpen = $state(false);
+  let undoDialogOpen = $state(false);
+
+  let { formula = $bindable() }: { formula: Formula<FormulaType> } = $props();
 
   let createdAt = $derived(df.format(new Date(formula.created_at)));
 
@@ -67,7 +75,7 @@
 
     if (!content) return;
 
-    await insertFormulaNote(formula.id, content);
+    await insertFormulaNote(formula.id, content, formula.type);
 
     cancelAddNote();
   }
@@ -249,24 +257,67 @@
 
     <div class=" flex items-center justify-between bg-muted/75 p-2">
       <p class="text-muted-foreground">Created {createdAt}</p>
-      <Dialog.Root>
-        <Dialog.Trigger>
-          <Button size="icon" variant="ghost" class="hover:text-destructive"><Trash /></Button>
-        </Dialog.Trigger>
-        <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>Delete formula {formula.name}?</Dialog.Title>
-            <Dialog.Description>This action cannot be undone.</Dialog.Description>
-          </Dialog.Header>
 
-          <Dialog.Footer>
-            <Dialog.Close class={buttonVariants({ variant: 'default' })}>Cancel</Dialog.Close>
-            <Button type="submit" variant="destructive" onclick={() => deleteFormula(formula.id)}
-              >Delete</Button
-            >
-          </Dialog.Footer>
-        </Dialog.Content>
-      </Dialog.Root>
+      <div>
+        <!-- UNDO FORMULA -->
+
+        {#if formula.type === 'MIXTURE'}
+          <Dialog.Root bind:open={undoDialogOpen}>
+            <Dialog.Trigger>
+              <Button size="icon" variant="ghost" class="hover:text-destructive"><Undo /></Button>
+            </Dialog.Trigger>
+            <Dialog.Content>
+              <Dialog.Header>
+                <Dialog.Title>Undo mixture {formula.name}?</Dialog.Title>
+                <Dialog.Description
+                  >This will delete the mixture and restore all the materials used to create it.
+                  This action cannot be undone.</Dialog.Description
+                >
+              </Dialog.Header>
+
+              <Dialog.Footer>
+                <Dialog.Close class={buttonVariants({ variant: 'default' })}>Cancel</Dialog.Close>
+                <Button
+                  type="submit"
+                  variant="destructive"
+                  onclick={() => {
+                    undoFormula(formula.id);
+                    undoDialogOpen = false;
+                  }}>Undo</Button
+                >
+              </Dialog.Footer>
+            </Dialog.Content>
+          </Dialog.Root>
+        {/if}
+
+        <!-- DELETE FORMULA -->
+
+        <Dialog.Root bind:open={deleteDialogOpen}>
+          <Dialog.Trigger>
+            <Button size="icon" variant="ghost" class="hover:text-destructive"><Trash /></Button>
+          </Dialog.Trigger>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>Delete mixture {formula.name}?</Dialog.Title>
+              <Dialog.Description
+                >No materials will be restored. This action cannot be undone.</Dialog.Description
+              >
+            </Dialog.Header>
+
+            <Dialog.Footer>
+              <Dialog.Close class={buttonVariants({ variant: 'default' })}>Cancel</Dialog.Close>
+              <Button
+                type="submit"
+                variant="destructive"
+                onclick={() => {
+                  deleteFormula(formula.id);
+                  deleteDialogOpen = false;
+                }}>Delete</Button
+              >
+            </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Root>
+      </div>
     </div>
   {/if}
 </li>

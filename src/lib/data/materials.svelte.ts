@@ -8,6 +8,7 @@ import type {
   MaterialDilutionAdd,
   MaterialHistory,
   MaterialInstanceAdd,
+  MaterialRestore,
   MaterialSpend
 } from '../types';
 import { date } from '../utils';
@@ -97,6 +98,8 @@ export async function initMaterials() {
   materials.historyD = await listMaterialHistory('DILUTION');
 
   materials.historyF = await listMaterialHistory('FORMULA');
+  console.log($state.snapshot(materials.historyD));
+  console.log($state.snapshot(materials.historyF));
 }
 
 /**
@@ -448,6 +451,7 @@ export async function spendMaterials(
   targetId: number,
   m: MaterialSpend[]
 ) {
+  console.log('spending materials', m);
   const _db = await db();
   const created_at = date(now(getLocalTimeZone()));
 
@@ -488,6 +492,53 @@ export async function spendMaterials(
   }
 }
 
+export async function restoreMaterials(targetId: number) {
+  const _db = await db();
+
+  const materialsRestore = await _db.select<MaterialRestore[]>(
+    `
+    SELECT target_type, material_id, grams FROM material_history
+    WHERE target_id = $1
+  `,
+    [targetId]
+  );
+
+  let targetType = null;
+
+  console.log('restoring materials', materialsRestore);
+
+  for (const { material_id, grams, target_type } of materialsRestore) {
+    targetType = target_type;
+    await _db.execute(
+      `
+      UPDATE materials 
+      SET grams_available = grams_available + $1
+      WHERE id = $2
+    `,
+      [grams, material_id]
+    );
+
+    materials.get(material_id)!!.grams_available += grams;
+  }
+
+  console.log('deleting target from history', targetId);
+
+  const result = await _db.execute(
+    `
+    DELETE FROM material_history WHERE target_id = $1
+  `,
+    [targetId]
+  );
+
+  console.log(result);
+
+  if (targetType === 'FORMULA') {
+    materials.historyF = materials.historyF.filter((m) => m.target_id !== targetId);
+  } else {
+    materials.historyD = materials.historyD.filter((m) => m.target_id !== targetId);
+  }
+}
+
 export type HistoryEntry<T extends MaterialTargetType> = {
   target: T;
   target_id: number;
@@ -525,4 +576,13 @@ export async function listMaterialHistory<T extends MaterialTargetType>(
   entries.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf());
 
   return entries;
+}
+
+/**
+ * Delete the formula with the given ID and resupply the material inventory
+ * with the materials used to create it.
+ */
+export async function undoDilution(id: number) {
+  await restoreMaterials(id);
+  await deleteMaterial(id);
 }

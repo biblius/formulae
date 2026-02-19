@@ -5,7 +5,7 @@
   import { getLocalTimeZone, now } from '@internationalized/date';
   import type { Material, MaterialDilutionAdd } from './types';
   import * as Popover from './components/ui/popover';
-  import { cn, df, pf } from './utils';
+  import { cn, df, gf, pf } from './utils';
   import { Calendar } from './components/ui/calendar';
   import { Calendar as CalendarIcon, Info, RefreshCw } from '@lucide/svelte';
   import * as Select from './components/ui/select';
@@ -72,6 +72,9 @@
 <div class="m-2 flex flex-wrap items-center justify-center gap-1 rounded-md p-2">
   <div class="flex w-full items-center justify-center">
     <div class="w-1/2">
+      <div class="w-full p-2 text-center">
+        Available: {state.material ? gf.format(state.material?.grams_available) : '-'}
+      </div>
       <Label for="name" class="text-xs">Material</Label>
       <Select.Root
         type="single"

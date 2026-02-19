@@ -12,7 +12,6 @@
 
   let {
     materialsAbstract,
-    materials,
     history
   }: {
     materialsAbstract: MaterialAbstract[];
@@ -101,10 +100,7 @@
     {/if}
 
     {#each displayAbstract as material}
-      <MaterialListItem
-        {material}
-        inventory={materials.filter((m) => m.material_id === material.id)}
-      />
+      <MaterialListItem {material} />
     {/each}
   </ul>
 

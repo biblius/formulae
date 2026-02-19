@@ -1,0 +1,1 @@
+ALTER TABLE formulae DROP COLUMN type;

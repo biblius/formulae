@@ -4,6 +4,7 @@ import type {
   MaterialInstanceType,
   MaterialTargetType
 } from './data/materials.svelte';
+import type { FormulaType } from './data/formulae.svelte';
 
 // ============================
 // Materials
@@ -59,8 +60,9 @@ export type Material = {
 // Formulae
 // ============================
 
-export type Formula = {
+export type Formula<T extends FormulaType> = {
   id: number;
+  type: T;
   name: string;
   description: string | null;
   grams_total: number;
@@ -137,17 +139,23 @@ export type MaterialDilutionAdd = {
 
 export type FormulaBuilder = {
   name: string;
+  type: FormulaType;
   description?: string;
   materials: MaterialSpend[];
   solventGrams: number;
   targetGrams: number;
-  targetConcentration: number;
 
   reset: () => void;
 };
 
 export type MaterialSpend = {
   original: Material;
+  grams: number;
+};
+
+export type MaterialRestore = {
+  target_type: MaterialTargetType;
+  material_id: number;
   grams: number;
 };
 

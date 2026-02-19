@@ -22,7 +22,7 @@
     X
   } from '@lucide/svelte';
 
-  import type { MaterialAbstract, Material, MaterialAbstractEdit } from './types';
+  import type { MaterialAbstract, MaterialAbstractEdit } from './types';
   import { openUrl } from '@tauri-apps/plugin-opener';
   import Button, { buttonVariants } from './components/ui/button/button.svelte';
   import FragranceWheel from './FragranceWheel.svelte';
@@ -32,11 +32,9 @@
   import Textarea from './components/Textarea.svelte';
 
   let {
-    material,
-    inventory
+    material
   }: {
     material: MaterialAbstract;
-    inventory: Material[];
   } = $props();
 
   let editing = $state(false);
@@ -272,7 +270,7 @@
 
   {#if open && !editing}
     <div class="space-y-2 bg-muted/75 px-2 py-3 text-sm">
-      <MaterialInventory {inventory} {material} />
+      <MaterialInventory {material} />
 
       <!-- EDIT MATERIAL -->
 

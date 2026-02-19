@@ -1,38 +1,59 @@
 import { getLocalTimeZone, now } from '@internationalized/date';
 import { db, insertValues } from '../db';
-import { spendMaterials } from './materials.svelte';
+import { restoreMaterials, spendMaterials } from './materials.svelte';
 import type { Formula, FormulaBuilder, FormulaMaterial, FormulaNote } from '../types';
 import { date } from '../utils';
 
 export type FormulaState = {
-  formulae: Formula[];
-  get: (id: number) => Formula | undefined;
+  formulae: Formula<'MIXTURE'>[];
+  drafts: Formula<'DRAFT'>[];
+
+  get: (id: number) => Formula<'MIXTURE'> | undefined;
+  getDraft: (id: number) => Formula<'DRAFT'> | undefined;
 };
 
 export let formulae: FormulaState = $state<FormulaState>({
   formulae: [],
+  drafts: [],
 
   get(id: number) {
+    console.log('getting', id);
     return this.formulae.find((f) => f.id === id);
+  },
+
+  getDraft(id: number) {
+    return this.drafts.find((f) => f.id === id);
   }
 });
 
+export type FormulaType = 'MIXTURE' | 'DRAFT';
+
 export async function initFormulae() {
-  formulae.formulae = await listFormulae();
+  const f = await listFormulae();
+  for (const formula of f) {
+    if (formula.type === 'DRAFT') {
+      formulae.drafts.unshift(formula as Formula<'DRAFT'>);
+    } else if (formula.type === 'MIXTURE') {
+      formulae.formulae.unshift(formula as Formula<'MIXTURE'>);
+    }
+  }
+  console.log($state.snapshot(formulae.drafts));
+  console.log($state.snapshot(formulae.formulae));
 }
 
-export async function insertFormula(state: FormulaBuilder): Promise<Formula> {
+export async function insertFormula(state: FormulaBuilder): Promise<Formula<typeof state.type>> {
   const _db = await db();
   const { lastInsertId: formulaId } = await _db.execute(
     `
       INSERT INTO formulae(
         name,
+        type,
         description,
         grams_total
       ) 
-      VALUES($1, $2, $3)
+      VALUES($1, $2, $3, $4)
       `,
-    [state.name, state.description, state.targetGrams]
+    [state.name, state.type, state.description, state.targetGrams]
   );
 
   await insertValues(
@@ -43,14 +64,24 @@ export async function insertFormula(state: FormulaBuilder): Promise<Formula> {
 
   const formula = await getFormula(formulaId!!);
 
-  formulae.formulae.unshift(formula);
+  if (formula.type === 'DRAFT') {
+    formulae.drafts.unshift(formula as Formula<'DRAFT'>);
+  } else if (formula.type === 'MIXTURE') {
+    formulae.formulae.unshift(formula as Formula<'MIXTURE'>);
+  }
 
-  await spendMaterials('FORMULA', formulaId!!, state.materials);
+  if (state.type === 'MIXTURE') {
+    await spendMaterials('FORMULA', formulaId!!, state.materials);
+  }
 
   return formula;
 }
 
-export async function insertFormulaNote(formulaId: number, content: string): Promise<FormulaNote> {
+export async function insertFormulaNote(
+  formulaId: number,
+  content: string,
+  type: FormulaType
+): Promise<FormulaNote> {
   const _db = await db();
 
   const { lastInsertId: noteId } = await _db.execute(
@@ -68,7 +99,11 @@ export async function insertFormulaNote(formulaId: number, content: string): Pro
     [noteId]
   );
 
-  formulae.formulae.find((f) => f.id === formulaId)?.notes.unshift(note[0]!!);
+  if (type === 'MIXTURE') {
+    formulae.formulae.find((f) => f.id === formulaId)?.notes.unshift(note[0]!!);
+  } else if (type === 'DRAFT') {
+    formulae.drafts.find((f) => f.id === formulaId)?.notes.unshift(note[0]!!);
+  }
 
   return note[0];
 }
@@ -93,13 +128,14 @@ export async function deleteFormulaNote(formulaId: number, noteId: number): Prom
   }
 }
 
-export async function listFormulae(): Promise<Formula[]> {
+export async function listFormulae(): Promise<Formula<FormulaType>[]> {
   const _db = await db();
 
-  const formulae: Formula[] = await _db.select(
+  const formulae: Formula<FormulaType>[] = await _db.select(
     `
        SELECT 
         id, 
+        type,
         name,
         description,
         grams_total,
@@ -139,13 +175,14 @@ export async function deleteFormula(id: number) {
   formulae.formulae = formulae.formulae.filter((f) => f.id !== id);
 }
 
-export async function getFormula(id: number): Promise<Formula> {
+export async function getFormula(id: number): Promise<Formula<FormulaType>> {
   const _db = await db();
 
-  const formulae: Formula[] = await _db.select(
+  const formulae: Formula<FormulaType>[] = await _db.select(
     `
        SELECT 
-        id, 
+        id,
+        type,
         name,
         description,
         grams_total,
@@ -176,4 +213,13 @@ export async function getFormula(id: number): Promise<Formula> {
   formulae[0].notes = notes;
 
   return formulae[0];
+}
+
+/**
+ * Delete the formula with the given ID and resupply the material inventory
+ * with the materials used to create it.
+ */
+export async function undoFormula(id: number) {
+  await restoreMaterials(id);
+  await deleteFormula(id);
 }

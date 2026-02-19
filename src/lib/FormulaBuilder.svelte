@@ -1,6 +1,6 @@
 <script lang="ts">
+  import * as Select from './components/ui/select';
   import { Button } from '$lib/components/ui/button';
-  import { Label } from '$lib/components/ui/label';
   import { materials } from '$lib/data/materials.svelte';
   import type { FormulaBuilder, Material, MaterialSpend } from './types';
   import { gf, pf } from './utils';
@@ -14,17 +14,17 @@
 
   let formula: FormulaBuilder = $state({
     name: '',
+    type: 'DRAFT',
     materials: [],
     solventGrams: 0,
     targetGrams: 100,
-    targetConcentration: 20,
 
     reset() {
       this.name = '';
       this.materials = [];
       this.solventGrams = 0;
       this.targetGrams = 100;
-      this.targetConcentration = 20;
+      this.type = 'DRAFT';
     }
   });
 
@@ -44,14 +44,13 @@
     }, 0)
   );
 
-  let available = $derived(
-    formula.targetGrams * (formula.targetConcentration / 100) - materialTotal
-  );
-
-  let concentrationTotal = $derived(materialTotal / formula.targetGrams);
   let concentrationDilutionTotal = $derived(materialDilutionTotal / formula.targetGrams);
 
-  let saveEnabled = $derived(formula.name && formula.materials.length > 0 && exceeded.length === 0);
+  let saveEnabled = $derived(
+    formula.name &&
+      formula.materials.length > 0 &&
+      ((formula.type === 'MIXTURE' && exceeded.length === 0) || formula.type === 'DRAFT')
+  );
 
   function addToFormula(material: Material) {
     formula.materials.push({
@@ -66,13 +65,11 @@
     }
 
     for (const material of formula.materials) {
-      if (material.grams > material.original.grams_available) {
+      if (material.grams > material.original.grams_available && formula.type === 'MIXTURE') {
         console.error('insufficient material');
         return;
       }
     }
-
-    formula.targetConcentration /= 100;
 
     await insertFormula(formula);
 
@@ -116,11 +113,56 @@
 
   <!-- ADD MATERIAL -->
 
-  <div class="flex items-center gap-4 not-sm:w-full not-sm:flex-wrap">
-    <div class="not-sm:w-full">
-      <Input class="w-full" bind:value={formula.name} placeholder="Name"></Input>
-    </div>
+  <div class="not-sm:w-full">
+    <Input class="w-full" bind:value={formula.name} placeholder="Name"></Input>
+  </div>
 
+  <Select.Root type="single" bind:value={formula.type}>
+    <Select.Trigger class="w-fit">
+      {formula.type === 'MIXTURE' ? 'Mixture' : 'Draft'}
+    </Select.Trigger>
+    <Select.Content>
+      <Select.Item value="MIXTURE">Mixture</Select.Item>
+      <Select.Item value="DRAFT">Draft</Select.Item>
+    </Select.Content>
+  </Select.Root>
+
+  <DropdownMenu.Root>
+    <DropdownMenu.Trigger class="relative max-w-lg">
+      <Button size="icon-sm" variant="outline">
+        <Plus />
+      </Button>
+    </DropdownMenu.Trigger>
+    <DropdownMenu.Content class="max-h-80 min-h-0 overflow-y-scroll">
+      <div class="p-2">
+        <Input
+          type="search"
+          placeholder="Search inventory"
+          bind:value={searching}
+          onselect={(e) => e.preventDefault()}
+        />
+      </div>
+      {#each materialsDisplay() as material}
+        <DropdownMenu.Item
+          onclick={() => addToFormula(material)}
+          disabled={material.grams_available <= 0 && formula.type === 'MIXTURE'}
+          class="flex"
+        >
+          <p class="flex-1">{material.name}</p>
+          <p>
+            {gf.format(material.grams_available)}
+          </p>
+        </DropdownMenu.Item>
+      {/each}
+    </DropdownMenu.Content>
+  </DropdownMenu.Root>
+
+  <div class="flex items-center">
+    <p class=" w-fit pr-2 text-center text-xs">Total (g)</p>
+    <Input type="number" step="1" class="w-20" bind:value={formula.targetGrams}></Input>
+  </div>
+
+  <div class="flex items-center gap-1 not-sm:w-full not-sm:flex-wrap">
     <Button
       class="not-sm:hidden"
       size="icon-sm"
@@ -143,51 +185,6 @@
         }
       }}>*10</Button
     >
-  </div>
-
-  <DropdownMenu.Root>
-    <DropdownMenu.Trigger class="max-w-lg">
-      <Button size="icon-sm" variant="outline">
-        <Plus />
-      </Button>
-    </DropdownMenu.Trigger>
-    <DropdownMenu.Content class="max-h-80 min-h-0 overflow-y-scroll">
-      <div class="p-2">
-        <Input
-          type="search"
-          placeholder="Search inventory"
-          bind:value={searching}
-          onselect={(e) => e.preventDefault()}
-        />
-      </div>
-      {#each materialsDisplay() as material}
-        <DropdownMenu.Item
-          onclick={() => addToFormula(material)}
-          disabled={material.grams_available <= 0}
-          class="flex"
-        >
-          <p class="flex-1">{material.name}</p>
-          <p>
-            {gf.format(material.grams_available)}
-          </p>
-        </DropdownMenu.Item>
-      {/each}
-    </DropdownMenu.Content>
-  </DropdownMenu.Root>
-
-  <div class="flex flex-wrap justify-center">
-    <p class=" w-full text-center text-xs">Total (g)</p>
-    <Input type="number" step="1" class="w-20" bind:value={formula.targetGrams}></Input>
-  </div>
-
-  <div>
-    <Label class="text-xs">Concentration (%)</Label>
-    <Input type="number" step="1" class="w-20" bind:value={formula.targetConcentration}></Input>
-  </div>
-
-  <div>
-    <p class="text-xs">Available</p>
-    <p>{gf.format(available)}</p>
   </div>
 </div>
 
@@ -228,7 +225,7 @@
         </td>
         <td class="border p-2 text-center">
           <Input
-            class={exceeded.includes(material.original.id)
+            class={exceeded.includes(material.original.id) && formula.type === 'MIXTURE'
               ? 'mx-auto w-20 border-destructive bg-destructive/5 focus-visible:border-destructive focus-visible:ring-destructive'
               : 'mx-auto w-20'}
             oninput={(e) => {
@@ -239,7 +236,7 @@
             bind:value={material.grams}
           ></Input>
 
-          {#if exceeded.includes(material.original.id)}
+          {#if exceeded.includes(material.original.id) && formula.type === 'MIXTURE'}
             <div class="mt-1 flex items-center justify-center gap-2 text-xs text-destructive">
               <Info class="h-4 w-4" />
               <span>Not enough material</span>
@@ -290,13 +287,7 @@
 
       <td class="border p-2 text-center font-bold">{gf.format(formula.targetGrams)}</td>
 
-      <td class="border p-2 text-center font-bold">
-        {#if concentrationTotal !== formula.targetConcentration / 100}
-          {pf.format(concentrationTotal)}/{pf.format(formula.targetConcentration / 100)}
-        {:else}
-          {pf.format(concentrationTotal)}
-        {/if}
-      </td>
+      <td class="border p-2 text-center font-bold"> - </td>
 
       <td class="border p-2 text-center font-bold">
         {pf.format(concentrationDilutionTotal)}

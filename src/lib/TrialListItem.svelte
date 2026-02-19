@@ -12,6 +12,7 @@
 
   let { trial = $bindable() }: { trial: Trial } = $props();
 
+  let deleteDialogOpen = $state(false);
   let open = $state(false);
   let addingNote = $state(false);
   let noteInput = $state('');
@@ -154,7 +155,7 @@
     <div class="flex items-center justify-between bg-muted/75 p-2">
       <p class="text-muted-foreground">Created {createdAt}</p>
 
-      <Dialog.Root>
+      <Dialog.Root bind:open={deleteDialogOpen}>
         <Dialog.Trigger>
           <Button size="icon" variant="ghost" class="hover:text-destructive">
             <Trash />
@@ -170,8 +171,13 @@
           <Dialog.Footer>
             <Dialog.Close class={buttonVariants({ variant: 'default' })}>Cancel</Dialog.Close>
 
-            <Button type="submit" variant="destructive" onclick={() => deleteTrial(trial.id)}
-              >Delete</Button
+            <Button
+              type="submit"
+              variant="destructive"
+              onclick={() => {
+                deleteTrial(trial.id);
+                deleteDialogOpen = false;
+              }}>Delete</Button
             >
           </Dialog.Footer>
         </Dialog.Content>

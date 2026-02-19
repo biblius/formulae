@@ -1,0 +1,1 @@
+ALTER TABLE formulae ADD COLUMN type TEXT NOT NULL DEFAULT 'formula';

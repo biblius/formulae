@@ -23,6 +23,13 @@ pub fn run() {
             sql: include_str!("../../migrations/20260214122708_trials.up.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 4,
+            description: "Add formula types",
+
+            sql: include_str!("../../migrations/20260219121759_formula_types.up.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()
