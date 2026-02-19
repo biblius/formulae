@@ -99,10 +99,10 @@
     if (original.grams_material != null && original.grams_solvent != null) {
       let concentration =
         original.grams_material / (original.grams_material + original.grams_solvent);
-      return (material.grams * concentration) / materialTotal;
+      return (material.grams * concentration) / formula.targetGrams;
     }
 
-    return material.grams / materialTotal;
+    return material.grams / formula.targetGrams;
   }
 </script>
 
@@ -196,7 +196,7 @@
       <th class="w-1/4 border p-2 text-center">Material</th>
       <th class="w-1/4 border p-2 text-center">Amount</th>
       <th class="w-1/4 border p-2 text-center">% material</th>
-      <th class="w-1/4 border p-2 text-center">% material (abs)</th>
+      <th class="w-1/4 border p-2 text-center">% material (undiluted)</th>
       <th class="w-1/4 border p-2 text-center">% total</th>
     </tr>
   </thead>
