@@ -41,6 +41,11 @@
       return;
     }
 
+    if (state.gramsMaterial > state.material.grams_available) {
+      console.warn('not enough material');
+      return;
+    }
+
     if (state.gramsMaterial <= 0) {
       console.warn('invalid amount!', state.gramsMaterial);
       return;

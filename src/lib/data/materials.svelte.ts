@@ -31,6 +31,14 @@ export type MaterialState = {
    * Swaps a material definition.
    */
   swapAbstract: (material: MaterialAbstract) => void;
+  /**
+   * Checks whether a material in the inventory is the target of a dilution.
+   * Used to reason about undoing dilutions; If there is no entry in the
+   * history which has the given `materialId` as the `target_id`, then
+   * the material was already a predilution when it was entered in the inventory, i.e.
+   * it was not diluted from another material from the inventory.
+   */
+  isDilutionTarget: (materialId: number) => boolean;
 };
 
 type MaterialIndices = {
@@ -79,6 +87,15 @@ export let materials: MaterialState = $state<MaterialState>({
       this.abstract[i] = material;
       indices.abstract[material.id] = material;
     }
+  },
+
+  isDilutionTarget(materialId: number) {
+    for (const entry of this.historyD) {
+      if (entry.target_id === materialId) {
+        return true;
+      }
+    }
+    return false;
   }
 });
 
@@ -98,8 +115,6 @@ export async function initMaterials() {
   materials.historyD = await listMaterialHistory('DILUTION');
 
   materials.historyF = await listMaterialHistory('FORMULA');
-  console.log($state.snapshot(materials.historyD));
-  console.log($state.snapshot(materials.historyF));
 }
 
 /**
@@ -232,12 +247,13 @@ export async function insertMaterialDilution(state: MaterialDilutionAdd): Promis
     throw `Not enough material ${state.material!!.id}: ${state.material?.grams_available} / ${state.gramsMaterial}`;
   }
 
-  let gramsDiluted = null;
+  let gramsMaterial = state.gramsMaterial;
+
   if (state.material?.grams_material != null && state.material.grams_solvent != null) {
     let concentration =
       state.material.grams_material /
       (state.material.grams_material + state.material.grams_solvent);
-    gramsDiluted = state.gramsMaterial * concentration;
+    gramsMaterial = state.gramsMaterial * concentration;
   }
 
   const { lastInsertId: dilutionId } = await _db.execute(
@@ -262,8 +278,8 @@ export async function insertMaterialDilution(state: MaterialDilutionAdd): Promis
       'DILUTION',
       state.gramsTotal,
       state.gramsTotal,
-      gramsDiluted != null ? gramsDiluted : state.gramsMaterial,
-      state.gramsTotal - state.gramsMaterial,
+      gramsMaterial,
+      state.gramsTotal - gramsMaterial,
       date(state.createdAt!!)
     ]
   );
@@ -285,7 +301,7 @@ export async function listMaterialsAbstract(): Promise<MaterialAbstract[]> {
 
   let materials: MaterialAbstract[] = await _db.select(`
        SELECT id, name, description, type, family, cas_number 
-       FROM materials_abstract
+       FROM materials_abstract ORDER BY id DESC
       `);
 
   for (const material of materials) {
@@ -451,7 +467,7 @@ export async function spendMaterials(
   targetId: number,
   m: MaterialSpend[]
 ) {
-  console.log('spending materials', m);
+  console.log('spending materials', $state.snapshot(m));
   const _db = await db();
   const created_at = date(now(getLocalTimeZone()));
 
@@ -523,14 +539,12 @@ export async function restoreMaterials(targetId: number) {
 
   console.log('deleting target from history', targetId);
 
-  const result = await _db.execute(
+  await _db.execute(
     `
     DELETE FROM material_history WHERE target_id = $1
   `,
     [targetId]
   );
-
-  console.log(result);
 
   if (targetType === 'FORMULA') {
     materials.historyF = materials.historyF.filter((m) => m.target_id !== targetId);

@@ -10,6 +10,7 @@ export type FormulaState = {
 
   get: (id: number) => Formula<'MIXTURE'> | undefined;
   getDraft: (id: number) => Formula<'DRAFT'> | undefined;
+  swapDraft: (formula: Formula<'DRAFT'>) => void;
 };
 
 export let formulae: FormulaState = $state<FormulaState>({
@@ -17,12 +18,18 @@ export let formulae: FormulaState = $state<FormulaState>({
   drafts: [],
 
   get(id: number) {
-    console.log('getting', id);
     return this.formulae.find((f) => f.id === id);
   },
 
   getDraft(id: number) {
     return this.drafts.find((f) => f.id === id);
+  },
+
+  swapDraft(formula: Formula<'DRAFT'>) {
+    const i = this.drafts.findIndex((f) => f.id === formula.id);
+    if (i !== -1) {
+      this.drafts[i] = formula;
+    }
   }
 });
 
@@ -32,9 +39,9 @@ export async function initFormulae() {
   const f = await listFormulae();
   for (const formula of f) {
     if (formula.type === 'DRAFT') {
-      formulae.drafts.unshift(formula as Formula<'DRAFT'>);
+      formulae.drafts.push(formula as Formula<'DRAFT'>);
     } else if (formula.type === 'MIXTURE') {
-      formulae.formulae.unshift(formula as Formula<'MIXTURE'>);
+      formulae.formulae.push(formula as Formula<'MIXTURE'>);
     }
   }
   console.log($state.snapshot(formulae.drafts));
@@ -75,6 +82,37 @@ export async function insertFormula(state: FormulaBuilder): Promise<Formula<type
   }
 
   return formula;
+}
+
+export async function updateFormula(id: number, state: FormulaBuilder) {
+  if (state.type === 'MIXTURE') {
+    console.error('attempted to update mixture!', id, state);
+    return;
+  }
+  const _db = await db();
+
+  await _db.execute(
+    `
+      UPDATE formulae SET
+        name = $1,
+        type = $2,
+        description = $3,
+        grams_total = $4
+      WHERE id = $5
+      `,
+    [state.name, state.type, state.description, state.targetGrams, id]
+  );
+
+  await _db.execute(`DELETE FROM formula_materials WHERE formula_id = $1`, [id]);
+  await insertValues(
+    'formula_materials',
+    ['material_id', 'formula_id', 'grams'],
+    state.materials.map((material) => [material.original.id, id, material.grams])
+  );
+
+  const formula = await getFormula(id);
+
+  formulae.swapDraft(formula as Formula<'DRAFT'>);
 }
 
 export async function insertFormulaNote(
@@ -167,12 +205,16 @@ export async function listFormulae(): Promise<Formula<FormulaType>[]> {
   return formulae;
 }
 
-export async function deleteFormula(id: number) {
+export async function deleteFormula(type: FormulaType, id: number) {
   const _db = await db();
 
   await _db.execute(`DELETE FROM formulae WHERE id = $1`, [id]);
 
-  formulae.formulae = formulae.formulae.filter((f) => f.id !== id);
+  if (type === 'MIXTURE') {
+    formulae.formulae = formulae.formulae.filter((f) => f.id !== id);
+  } else if (type === 'DRAFT') {
+    formulae.drafts = formulae.drafts.filter((f) => f.id !== id);
+  }
 }
 
 export async function getFormula(id: number): Promise<Formula<FormulaType>> {
@@ -221,5 +263,5 @@ export async function getFormula(id: number): Promise<Formula<FormulaType>> {
  */
 export async function undoFormula(id: number) {
   await restoreMaterials(id);
-  await deleteFormula(id);
+  await deleteFormula('MIXTURE', id);
 }

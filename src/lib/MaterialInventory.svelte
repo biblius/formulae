@@ -56,12 +56,12 @@
         <tbody class="divide-y">
           {#each inventory as inventoryMaterial}
             <tr>
-              <td class="flex items-center gap-2 p-2 font-medium">
+              <td class="flex items-center gap-2 p-2 font-medium wrap-anywhere">
                 <p>
                   {inventoryMaterial.name ?? material.name}
                 </p>
 
-                {#if inventoryMaterial.grams_material != null}
+                {#if inventoryMaterial.grams_material != null && materials.isDilutionTarget(inventoryMaterial.id)}
                   <Dialog.Root>
                     <Dialog.Trigger>
                       <Button size="icon-sm" variant="ghost" class="hover:text-destructive"

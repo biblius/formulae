@@ -7,33 +7,45 @@
   import { Info, Plus, X } from '@lucide/svelte';
   import * as DropdownMenu from './components/ui/dropdown-menu/index';
   import { Input } from './components/ui/input';
-  import { insertFormula } from './data/formulae.svelte';
+  import Textarea from './components/Textarea.svelte';
 
   let exceeded = $state<number[]>([]);
   let searching = $state('');
 
-  let formula: FormulaBuilder = $state({
-    name: '',
-    type: 'DRAFT',
-    materials: [],
-    solventGrams: 0,
-    targetGrams: 100,
+  let {
+    formula = $bindable({
+      name: '',
+      type: 'DRAFT',
+      materials: [],
+      solventGrams: 0,
+      targetGrams: 100,
 
-    reset() {
-      this.name = '';
-      this.materials = [];
-      this.solventGrams = 0;
-      this.targetGrams = 100;
-      this.type = 'DRAFT';
-    }
-  });
+      reset() {
+        this.name = '';
+        this.materials = [];
+        this.solventGrams = 0;
+        this.targetGrams = 100;
+        this.type = 'DRAFT';
+      }
+    }),
+    onSave,
+    onCancel,
+    editing = false
+  } = $props<{
+    formula?: FormulaBuilder;
+    onSave: (formula: FormulaBuilder) => void;
+    onCancel: () => void;
+    editing?: boolean;
+  }>();
+
+  // let formula: FormulaBuilder = $state();
 
   let materialTotal = $derived(
-    formula.materials.reduce((acc, material) => acc + material.grams, 0)
+    formula.materials.reduce((acc: number, material: MaterialSpend) => acc + material.grams, 0)
   );
 
   let materialDilutionTotal = $derived(
-    formula.materials.reduce((acc, material) => {
+    formula.materials.reduce((acc: number, material: MaterialSpend) => {
       if (material.original.grams_material != null && material.original.grams_solvent != null) {
         const ratio =
           material.original.grams_material /
@@ -57,23 +69,6 @@
       original: material,
       grams: 0
     });
-  }
-
-  async function saveFormula() {
-    if (formula.materials.length === 0) {
-      return;
-    }
-
-    for (const material of formula.materials) {
-      if (material.grams > material.original.grams_available && formula.type === 'MIXTURE') {
-        console.error('insufficient material');
-        return;
-      }
-    }
-
-    await insertFormula(formula);
-
-    formula.reset();
   }
 
   function handleMaterialInput(target: HTMLInputElement, material: MaterialSpend) {
@@ -108,83 +103,87 @@
 
 <!-- HEADER -->
 
-<div class="mx-4 flex items-center justify-center gap-4 rounded-xl p-2 py-2 not-sm:flex-wrap">
+<div class="mx-4 flex flex-wrap items-center justify-center gap-4 rounded-xl p-2 py-2">
   <!-- NAME -->
 
-  <!-- ADD MATERIAL -->
+  <div class="w-1/2">
+    <div class="my-2 not-sm:w-full">
+      <Input class="w-full" bind:value={formula.name} placeholder="Name"></Input>
+    </div>
 
-  <div class="not-sm:w-full">
-    <Input class="w-full" bind:value={formula.name} placeholder="Name"></Input>
+    <div class="w-full not-sm:w-full">
+      <Textarea rows={4} bind:value={formula.description} placeholder="Description" />
+    </div>
   </div>
 
-  <Select.Root type="single" bind:value={formula.type}>
-    <Select.Trigger class="w-fit">
-      {formula.type === 'MIXTURE' ? 'Mixture' : 'Draft'}
-    </Select.Trigger>
-    <Select.Content>
-      <Select.Item value="MIXTURE">Mixture</Select.Item>
-      <Select.Item value="DRAFT">Draft</Select.Item>
-    </Select.Content>
-  </Select.Root>
+  <div class="flex w-1/2 justify-center gap-4">
+    <!-- ADD MATERIAL -->
 
-  <DropdownMenu.Root>
-    <DropdownMenu.Trigger class="relative max-w-lg">
-      <Button size="icon-sm" variant="outline">
-        <Plus />
-      </Button>
-    </DropdownMenu.Trigger>
-    <DropdownMenu.Content class="max-h-80 min-h-0 overflow-y-scroll">
-      <div class="p-2">
-        <Input
-          type="search"
-          placeholder="Search inventory"
-          bind:value={searching}
-          onselect={(e) => e.preventDefault()}
-        />
-      </div>
-      {#each materialsDisplay() as material}
-        <DropdownMenu.Item
-          onclick={() => addToFormula(material)}
-          disabled={material.grams_available <= 0 && formula.type === 'MIXTURE'}
-          class="flex"
-        >
-          <p class="flex-1">{material.name}</p>
-          <p>
-            {gf.format(material.grams_available)}
-          </p>
-        </DropdownMenu.Item>
-      {/each}
-    </DropdownMenu.Content>
-  </DropdownMenu.Root>
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger class="relative max-w-lg">
+        <Button size="icon-sm" variant="outline">
+          <Plus />
+        </Button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content
+        class="min-h-0 overflow-y-scroll not-sm:max-h-80 sm:max-h-56 sm:max-w-60 sm:wrap-anywhere"
+      >
+        <div class="p-2">
+          <Input
+            type="search"
+            placeholder="Search inventory"
+            bind:value={searching}
+            onselect={(e) => e.preventDefault()}
+          />
+        </div>
+        {#each materialsDisplay() as material}
+          <DropdownMenu.Item
+            onclick={() => addToFormula(material)}
+            disabled={material.grams_available <= 0 && formula.type === 'MIXTURE'}
+            class="flex"
+          >
+            <p class="flex-1">{material.name}</p>
+            <p>
+              {gf.format(material.grams_available)}
+            </p>
+          </DropdownMenu.Item>
+        {/each}
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
 
-  <div class="flex items-center">
-    <p class=" w-fit pr-2 text-center text-xs">Total (g)</p>
-    <Input type="number" step="1" class="w-20" bind:value={formula.targetGrams}></Input>
-  </div>
+    <Select.Root disabled={editing} type="single" bind:value={formula.type}>
+      <Select.Trigger class="w-fit">
+        {formula.type === 'MIXTURE' ? 'Mixture' : 'Draft'}
+      </Select.Trigger>
+      <Select.Content>
+        <Select.Item value="MIXTURE">Mixture</Select.Item>
+        <Select.Item value="DRAFT">Draft</Select.Item>
+      </Select.Content>
+    </Select.Root>
 
-  <div class="flex items-center gap-1 not-sm:w-full not-sm:flex-wrap">
-    <Button
-      class="not-sm:hidden"
-      size="icon-sm"
-      variant="ghost"
-      onclick={() => {
-        formula.targetGrams /= 10;
-        for (const material of formula.materials) {
-          material.grams /= 10;
-        }
-      }}>/10</Button
-    >
-    <Button
-      class="not-sm:hidden"
-      size="icon-sm"
-      variant="ghost"
-      onclick={() => {
-        formula.targetGrams *= 10;
-        for (const material of formula.materials) {
-          material.grams *= 10;
-        }
-      }}>*10</Button
-    >
+    <div class="flex items-center">
+      <p class=" w-fit pr-2 text-center text-xs">Total (g)</p>
+      <Input type="number" step="1" class="w-20" bind:value={formula.targetGrams}></Input>
+    </div>
+
+    <div class="flex items-center gap-1 not-sm:w-full not-sm:flex-wrap">
+      <Button
+        class="not-sm:hidden"
+        size="icon-sm"
+        variant="ghost"
+        onclick={() => {
+          formula.targetGrams /= 10;
+        }}>/10</Button
+      >
+      <Button
+        class="not-sm:hidden"
+        size="icon-sm"
+        variant="ghost"
+        onclick={() => {
+          formula.targetGrams *= 10;
+        }}>*10</Button
+      >
+    </div>
   </div>
 </div>
 
@@ -214,7 +213,7 @@
               class="hover:text-destructive"
               onclick={() => {
                 formula.materials = formula.materials.filter(
-                  (m) => m.original.id !== material.original.id
+                  (m: MaterialSpend) => m.original.id !== material.original.id
                 );
               }}><X /></Button
             >
@@ -298,6 +297,7 @@
   </tbody>
 </table>
 
-<div class="flex w-full justify-center p-4">
-  <Button disabled={!saveEnabled} onclick={saveFormula}>Save</Button>
+<div class="flex w-full justify-center gap-2 p-4">
+  <Button variant="destructive" onclick={() => onCancel()}>Cancel</Button>
+  <Button disabled={!saveEnabled} onclick={() => onSave(formula)}>Save</Button>
 </div>

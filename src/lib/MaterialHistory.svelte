@@ -14,8 +14,28 @@
   }
 
   function getMaterialName(id: number) {
-    return materials.get(id)!!.name ?? materials.getAbstract(materials.get(id)!!.id)?.name;
+    return materials.get(id)!!.name ?? '-';
   }
+
+  function getAbstractName(id: number) {
+    return materials.getAbstract(materials.get(id)!!.material_id)!!.name;
+  }
+
+  const createdAt = (entry: HistoryEntry<MaterialTargetType>) => {
+    const t = target(entry.target_id, entry.target);
+    if (t) {
+      return df.format(new Date(t.created_at));
+    }
+    return '-';
+  };
+
+  const name = (entry: HistoryEntry<MaterialTargetType>) => {
+    const t = target(entry.target_id, entry.target);
+    if (t) {
+      return t.name;
+    }
+    return '-';
+  };
 </script>
 
 <div class="space-y-6 overflow-y-scroll p-2">
@@ -25,7 +45,7 @@
         class="flex cursor-pointer list-none items-baseline justify-between border-b px-4 py-2 font-semibold"
       >
         <span>
-          Created {target(entry.target_id, entry.target)?.name}
+          Created {name(entry)}
         </span>
         <span class="text-sm font-normal not-sm:hidden">
           {entry.materials.length}
@@ -37,7 +57,7 @@
           used for {entry.target.toLowerCase()}
         </span>
         <span class="text-sm font-normal not-sm:hidden">
-          {df.format(new Date(target(entry.target_id, entry.target)!!.created_at))}
+          {createdAt(entry)}
         </span>
       </summary>
 
@@ -45,8 +65,10 @@
         <table class="mx-auto w-1/2 border-collapse text-sm">
           <thead>
             <tr>
-              <th class="border-b p-3 text-left font-semibold"> Material </th>
-              <th class="border-b p-3 text-right font-semibold"> Amount </th>
+              <th class="border-b p-3 text-left font-semibold">Definition</th>
+              <th class="border-b p-3 text-left font-semibold">Source</th>
+              <th class="border-b p-3 text-left font-semibold">Target</th>
+              <th class="border-b p-3 text-right font-semibold">Amount</th>
             </tr>
           </thead>
 
@@ -54,7 +76,13 @@
             {#each entry.materials as material}
               <tr>
                 <td class="border-b p-3">
+                  {getAbstractName(material.id)}
+                </td>
+                <td class="border-b p-3">
                   {getMaterialName(material.id)}
+                </td>
+                <td class="border-b p-3">
+                  {name(entry)}
                 </td>
                 <td class="border-b p-3 text-right font-mono">
                   {gf.format(material.grams)}
