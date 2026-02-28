@@ -30,6 +30,15 @@ pub fn run() {
             sql: include_str!("../../migrations/20260219121759_formula_types.up.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 5,
+            description: "Drop delete cascade on materials instance_id relation",
+
+            sql: include_str!(
+                "../../migrations/20260228175744_materials_remove_cascade_on_instance.up.sql"
+            ),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

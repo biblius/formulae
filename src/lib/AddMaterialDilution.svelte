@@ -3,59 +3,34 @@
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import { getLocalTimeZone, now } from '@internationalized/date';
-  import type { Material, MaterialDilutionAdd } from './types';
+  import type { Material, MaterialDilutionBuilder } from './types';
   import * as Popover from './components/ui/popover';
   import { cn, df, gf, pf } from './utils';
   import { Calendar } from './components/ui/calendar';
   import { Calendar as CalendarIcon, Info, RefreshCw } from '@lucide/svelte';
   import * as Select from './components/ui/select';
-  import { insertMaterialDilution } from './data/materials.svelte';
 
   let {
     inventory,
     onSubmit
   }: {
     inventory: Material[];
-    onSubmit: () => void;
+    onSubmit: (m: MaterialDilutionBuilder) => void;
   } = $props();
 
-  let state: MaterialDilutionAdd = $state<MaterialDilutionAdd>({
-    material: null,
-    name: null,
+  let state: MaterialDilutionBuilder = $state<MaterialDilutionBuilder>({
     gramsMaterial: 1,
     gramsTotal: 10,
     createdAt: now(getLocalTimeZone()),
 
     reset() {
-      this.material = null;
-      this.name = null;
+      this.material = undefined;
+      this.name = undefined;
       this.gramsMaterial = 1;
       this.gramsTotal = 10;
       this.createdAt = now(getLocalTimeZone());
     }
   });
-
-  async function createMaterialDilution() {
-    if (state.material == null) {
-      console.warn('material not selected!');
-      return;
-    }
-
-    if (state.gramsMaterial > state.material.grams_available) {
-      console.warn('not enough material');
-      return;
-    }
-
-    if (state.gramsMaterial <= 0) {
-      console.warn('invalid amount!', state.gramsMaterial);
-      return;
-    }
-
-    await insertMaterialDilution(state);
-
-    state.reset();
-    onSubmit();
-  }
 
   let concentration = $derived.by(() => {
     if (
@@ -71,6 +46,7 @@
       return state.gramsMaterial / state.gramsTotal;
     }
   });
+
   let exceeded = $derived(state.material && state.gramsMaterial > state.material.grams_available);
 </script>
 
@@ -187,6 +163,7 @@
             type="single"
             initialFocus
             captionLayout="dropdown"
+            preventDeselect={true}
           />
         </Popover.Content>
       </Popover.Root>
@@ -197,7 +174,7 @@
     <Button class="w-32" type="button" variant="secondary" onclick={() => state.reset()}
       ><RefreshCw /></Button
     >
-    <Button disabled={exceeded} onclick={() => createMaterialDilution()} class="w-32" type="submit"
+    <Button disabled={exceeded} onclick={() => onSubmit(state)} class="w-32" type="submit"
       >Add</Button
     >
   </div>

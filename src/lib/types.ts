@@ -25,6 +25,7 @@ export type MaterialAbstract = {
   cas_number?: string;
   links: string[];
   color?: string;
+  inventory: Material[];
 };
 
 export type MaterialTag = {
@@ -88,45 +89,33 @@ export type FormulaNote = {
 // CREATE MATERIAL
 // ============================
 
-export type MaterialAbstractAdd = {
-  name: string | null;
+export type MaterialAbstractBuilder = {
+  name?: string;
   type: MaterialType;
-  description: string | null;
-  family: string | null;
-  cas: string | null;
-  linkInput: string;
-  links: string[];
-  tagInput: string;
-  tags: string[];
-  reset: () => void;
-};
-
-export type MaterialAbstractEdit = {
-  name: string;
-  type: MaterialType;
-  tagInput: string;
-  tags: string[];
-  linkInput: string;
-  links: string[];
+  description?: string;
   family?: string;
   cas?: string;
-  description?: string;
-};
-
-export type MaterialInstanceAdd = {
-  name: string | null;
-  manufacturer: string | null;
-  batchId: string | null;
-  grams: number;
-  link: string | null;
-  createdAt: DateValue;
-  predilution: number | null;
+  linkInput?: string;
+  links: string[];
+  tagInput?: string;
+  tags: string[];
   reset: () => void;
 };
 
-export type MaterialDilutionAdd = {
-  material: Material | null;
-  name: string | null;
+export type MaterialInstanceBuilder = {
+  name?: string;
+  manufacturer?: string;
+  batchId?: string;
+  grams: number;
+  link?: string;
+  createdAt: DateValue;
+  predilution?: number;
+  reset: () => void;
+};
+
+export type MaterialDilutionBuilder = {
+  material?: Material;
+  name?: string;
   gramsMaterial: number;
   gramsTotal: number;
   createdAt: DateValue;

@@ -7,7 +7,7 @@
     container = $bindable(),
     input = $bindable(),
     placeholder = ''
-  }: { container: string[]; input: string; placeholder?: string } = $props();
+  }: { container: string[]; input?: string; placeholder?: string } = $props();
 </script>
 
 {#each container as _, i}

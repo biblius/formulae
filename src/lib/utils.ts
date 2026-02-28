@@ -41,3 +41,7 @@ export const pf = new Intl.NumberFormat('en-US', {
 export function date(value: DateValue): string {
   return value.toString().replace('T', ' ').slice(0, 19);
 }
+
+export function toDateValue(dateStr: string) {
+  return dateStr.replace(' ', 'T');
+}

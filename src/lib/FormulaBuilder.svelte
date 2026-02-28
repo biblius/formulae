@@ -83,9 +83,9 @@
   function materialsDisplay() {
     if (searching) {
       const regex = new RegExp(searching, 'i');
-      return materials.inventory.filter((m) => (m.name ? regex.test(m.name) : false));
+      return materials.inventory().filter((m) => (m.name ? regex.test(m.name) : false));
     }
-    return materials.inventory;
+    return materials.inventory();
   }
 
   function concentrationAbs(material: MaterialSpend) {

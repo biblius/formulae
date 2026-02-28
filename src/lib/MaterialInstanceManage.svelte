@@ -3,46 +3,36 @@
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import { getLocalTimeZone, now } from '@internationalized/date';
-  import type { MaterialAbstract, MaterialInstanceAdd } from './types';
+  import type { MaterialAbstract, MaterialInstanceBuilder } from './types';
   import * as Popover from './components/ui/popover';
   import { cn, df } from './utils';
   import { Calendar } from './components/ui/calendar';
-  import { Calendar as CalendarIcon, RefreshCw } from '@lucide/svelte';
-  import { insertMaterialInstance } from './data/materials.svelte';
+  import { Calendar as CalendarIcon, Check, X } from '@lucide/svelte';
 
-  let { material, onSubmit }: { material: MaterialAbstract; onSubmit: () => void } = $props();
+  let {
+    material,
+    onSubmit,
+    onCancel = (state) => state.reset(),
+    state = $bindable<MaterialInstanceBuilder>({
+      grams: 0,
+      createdAt: now(getLocalTimeZone()),
 
-  let state: MaterialInstanceAdd = $state<MaterialInstanceAdd>({
-    grams: 0,
-    name: null,
-    manufacturer: null,
-    batchId: null,
-    link: null,
-    createdAt: now(getLocalTimeZone()),
-    predilution: null,
-
-    reset() {
-      this.name = null;
-      this.grams = 0;
-      this.createdAt = now(getLocalTimeZone());
-      this.manufacturer = null;
-      this.batchId = null;
-      this.predilution = null;
-    }
-  });
-
-  async function createMaterialInstance() {
-    if (state.grams <= 0) {
-      console.warn('invalid grams!', state.grams);
-      return;
-    }
-
-    await insertMaterialInstance(material.id, state);
-
-    state.reset();
-
-    onSubmit();
-  }
+      reset() {
+        this.name = undefined;
+        this.grams = 0;
+        this.createdAt = now(getLocalTimeZone());
+        this.manufacturer = undefined;
+        this.batchId = undefined;
+        this.predilution = undefined;
+        this.link = undefined;
+      }
+    })
+  }: {
+    state?: MaterialInstanceBuilder;
+    material: MaterialAbstract;
+    onSubmit: (m: MaterialInstanceBuilder) => void;
+    onCancel?: (m: MaterialInstanceBuilder) => void;
+  } = $props();
 </script>
 
 <div class="m-2 flex flex-wrap items-center justify-center gap-4 rounded-md p-2">
@@ -124,6 +114,7 @@
               type="single"
               initialFocus
               captionLayout="dropdown"
+              preventDeselect={true}
             />
           </Popover.Content>
         </Popover.Root>
@@ -132,9 +123,7 @@
   </div>
 
   <div class="mx-auto flex w-full justify-center gap-2 py-2">
-    <Button class="w-32" type="button" variant="secondary" onclick={() => state.reset()}
-      ><RefreshCw /></Button
-    >
-    <Button onclick={() => createMaterialInstance()} class="w-32" type="submit">Add</Button>
+    <Button size="icon-sm" variant="destructive" onclick={() => onCancel(state)}><X /></Button>
+    <Button size="icon-sm" onclick={() => onSubmit(state)} type="submit"><Check /></Button>
   </div>
 </div>

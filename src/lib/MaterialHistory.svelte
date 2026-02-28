@@ -14,11 +14,20 @@
   }
 
   function getMaterialName(id: number) {
-    return materials.get(id)!!.name ?? '-';
+    return materials.get(id)?.name ?? '-';
   }
 
-  function getAbstractName(id: number) {
-    return materials.getAbstract(materials.get(id)!!.material_id)!!.name;
+  function getAbstractName(id: number, targetId: number) {
+    const m = materials.get(id);
+    if (m) {
+      return materials.getAbstract(m.material_id)!!.name;
+    }
+    const target = materials.get(targetId);
+    if (target) {
+      return materials.getAbstract(target.material_id)!!.name;
+    }
+
+    return '-';
   }
 
   const createdAt = (entry: HistoryEntry<MaterialTargetType>) => {
@@ -65,7 +74,7 @@
         <table class="mx-auto w-1/2 border-collapse text-sm">
           <thead>
             <tr>
-              <th class="border-b p-3 text-left font-semibold">Definition</th>
+              <th class="border-b p-3 text-left font-semibold">Material</th>
               <th class="border-b p-3 text-left font-semibold">Source</th>
               <th class="border-b p-3 text-left font-semibold">Target</th>
               <th class="border-b p-3 text-right font-semibold">Amount</th>
@@ -76,7 +85,7 @@
             {#each entry.materials as material}
               <tr>
                 <td class="border-b p-3">
-                  {getAbstractName(material.id)}
+                  {getAbstractName(material.id, entry.target_id)}
                 </td>
                 <td class="border-b p-3">
                   {getMaterialName(material.id)}

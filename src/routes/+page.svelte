@@ -123,14 +123,10 @@
   </header>
 
   {#if display === 'materials'}
-    <Materials
-      materialsAbstract={materials.abstract}
-      materials={materials.inventory}
-      history={materials.historyD}
-    />
+    <Materials materialsAbstract={materials.definitions()} history={materials.historyD} />
   {:else if display === 'formulae'}
     <Formula history={materials.historyF} />
   {:else if display === 'trials'}
-    <Trials bind:trials={trials.trials} materials={materials.abstract} />
+    <Trials bind:trials={trials.trials} materials={materials.definitions()} />
   {/if}
 </div>

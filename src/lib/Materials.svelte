@@ -5,17 +5,16 @@
   import MaterialListItem from './MaterialListItem.svelte';
   import { Input } from '$lib/components/ui/input';
 
-  import type { MaterialAbstract, Material } from './types';
-  import AddMaterialAbstract from './AddMaterialAbstract.svelte';
+  import type { MaterialAbstract, MaterialAbstractBuilder } from './types';
+  import MaterialAbstractManage from './MaterialAbstractManage.svelte';
   import MaterialHistory from './MaterialHistory.svelte';
-  import type { HistoryEntry } from './data/materials.svelte';
+  import { insertMaterialAbstract, type HistoryEntry } from './data/materials.svelte';
 
   let {
     materialsAbstract,
     history
   }: {
     materialsAbstract: MaterialAbstract[];
-    materials: Material[];
     history: HistoryEntry<'DILUTION'>[];
   } = $props();
 
@@ -67,6 +66,32 @@
   });
 
   let adding = $state(false);
+
+  async function createMaterialAbstract(state: MaterialAbstractBuilder) {
+    if (state.name == null) {
+      console.warn('no name');
+      return;
+    }
+
+    if (state.type == null) {
+      console.warn('no type');
+      return;
+    }
+
+    if (state.tagInput) {
+      state.tags.push(state.tagInput);
+    }
+
+    if (state.linkInput) {
+      state.links.push(state.linkInput);
+    }
+
+    await insertMaterialAbstract(state);
+
+    state.reset();
+
+    adding = false;
+  }
 </script>
 
 <main>
@@ -96,11 +121,18 @@
 
   <ul class="w-full">
     {#if adding}
-      <AddMaterialAbstract onSubmit={() => (adding = false)} />
+      <MaterialAbstractManage
+        headerText={'Add definition'}
+        onSubmit={createMaterialAbstract}
+        onCancel={(state) => {
+          state.reset();
+          adding = false;
+        }}
+      />
     {/if}
 
-    {#each displayAbstract as material}
-      <MaterialListItem {material} />
+    {#each displayAbstract as _, i}
+      <MaterialListItem bind:material={displayAbstract[i]} />
     {/each}
   </ul>
 

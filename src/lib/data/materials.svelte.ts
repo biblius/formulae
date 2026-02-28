@@ -3,19 +3,16 @@ import { db, insertValues } from '../db';
 import type {
   Material,
   MaterialAbstract,
-  MaterialAbstractAdd,
-  MaterialAbstractEdit,
-  MaterialDilutionAdd,
+  MaterialAbstractBuilder,
+  MaterialDilutionBuilder,
   MaterialHistory,
-  MaterialInstanceAdd,
+  MaterialInstanceBuilder,
   MaterialRestore,
   MaterialSpend
 } from '../types';
 import { date } from '../utils';
 
 export type MaterialState = {
-  abstract: MaterialAbstract[];
-  inventory: Material[];
   historyD: HistoryEntry<'DILUTION'>[];
   historyF: HistoryEntry<'FORMULA'>[];
 
@@ -23,6 +20,10 @@ export type MaterialState = {
    * Gets a material from inventory.
    */
   get: (id: number) => Material | undefined;
+  /**
+   * Swaps a material in the inventory.
+   */
+  swap: (material: Material) => void;
   /**
    * Gets a material definition.
    */
@@ -39,11 +40,24 @@ export type MaterialState = {
    * it was not diluted from another material from the inventory.
    */
   isDilutionTarget: (materialId: number) => boolean;
+
+  /**
+   * Return the whole material inventory.
+   */
+  inventory: () => Material[];
+
+  /**
+   * Return all material definitions.
+   */
+  definitions: () => MaterialAbstract[];
 };
 
 type MaterialIndices = {
   abstract: Record<number, MaterialAbstract>;
-  inventory: Record<number, Material>;
+  /**
+   * Maps inventory IDs to their definitions.
+   */
+  inventory: Record<number, number>;
 };
 
 let indices = $state<MaterialIndices>({
@@ -52,64 +66,65 @@ let indices = $state<MaterialIndices>({
 });
 
 export let materials: MaterialState = $state<MaterialState>({
-  abstract: [],
-  inventory: [],
   historyD: [],
   historyF: [],
 
   get(id: number): Material | undefined {
-    if (indices.inventory[id]) {
-      console.log('inventory index hit', id);
-      return indices.inventory[id];
+    const abs = indices.abstract[indices.inventory[id]];
+    return abs?.inventory.find((i) => i.id === id);
+  },
+
+  swap(material: Material) {
+    const abs = indices.abstract[indices.inventory[material.id]];
+    const i = abs.inventory.findIndex((m) => m.id === material.id);
+    if (i !== -1) {
+      console.log('swapping', material.id);
+      abs.inventory[i] = material;
     }
-    const material = this.inventory.find((m) => m.id === id);
-    if (material) {
-      indices.inventory[id] = material;
-    }
-    return material;
   },
 
   getAbstract(id: number): MaterialAbstract | undefined {
-    if (indices.abstract[id]) {
-      console.log('abstract index hit', id);
-      return indices.abstract[id];
-    }
-    const material = this.abstract.find((m) => m.id === id);
-    if (material) {
-      indices.abstract[id] = material;
-    }
-    return material;
+    return indices.abstract[id];
   },
 
   swapAbstract(material: MaterialAbstract) {
-    const i = this.abstract.findIndex((m) => m.id === material.id);
-    if (i !== -1) {
-      this.abstract[i] = material;
-      indices.abstract[material.id] = material;
-    }
+    indices.abstract[material.id] = material;
   },
 
   isDilutionTarget(materialId: number) {
     for (const entry of this.historyD) {
       if (entry.target_id === materialId) {
-        return true;
+        if (entry.materials.length === 1 && materials.get(entry.materials[0].id)) {
+          return true;
+        }
       }
     }
     return false;
+  },
+
+  inventory() {
+    return Object.values(indices.abstract).flatMap((a) => a.inventory);
+  },
+
+  definitions() {
+    const out = Object.values(indices.abstract);
+    out.sort((a, b) => b.id - a.id);
+    return out;
   }
 });
 
 export async function initMaterials() {
-  materials.abstract = await listMaterialsAbstract();
+  const abstract = await listMaterialsAbstract();
 
-  for (const material of materials.abstract) {
+  for (const material of abstract) {
     indices.abstract[material.id] = material;
   }
 
-  materials.inventory = await listMaterials();
+  const inventory = await listMaterials();
 
-  for (const material of materials.inventory) {
-    indices.inventory[material.id] = material;
+  for (const material of inventory) {
+    indices.abstract[material.material_id].inventory.push(material);
+    indices.inventory[material.id] = material.material_id;
   }
 
   materials.historyD = await listMaterialHistory('DILUTION');
@@ -122,13 +137,13 @@ export async function initMaterials() {
  * SY - synthetic
  * NA - natural absolute
  */
-export type MaterialType = 'EO' | 'SY' | 'NA';
+export type MaterialType = 'EO' | 'SY' | 'NA' | 'CO2' | 'RES';
 
 export type MaterialTargetType = 'FORMULA' | 'DILUTION';
 
 export type MaterialInstanceType = 'PURE' | 'DILUTION';
 
-export const MATERIAL_TYPES: MaterialType[] = ['EO', 'SY', 'NA'];
+export const MATERIAL_TYPES: MaterialType[] = ['EO', 'SY', 'NA', 'CO2', 'RES'];
 
 export function materialType(input: MaterialType): string {
   switch (input) {
@@ -138,11 +153,15 @@ export function materialType(input: MaterialType): string {
       return 'Synthetic';
     case 'NA':
       return 'Absolute';
+    case 'CO2':
+      return 'CO2 extract';
+    case 'RES':
+      return 'Resin';
   }
 }
 
 export async function insertMaterialAbstract(
-  state: MaterialAbstractAdd
+  state: MaterialAbstractBuilder
 ): Promise<MaterialAbstract> {
   const _db = await db();
   const { lastInsertId: materialId } = await _db.execute(
@@ -176,16 +195,16 @@ export async function insertMaterialAbstract(
   }
 
   const material = await getMaterialAbstract(materialId!!);
+  material.inventory = [];
 
-  materials.abstract.unshift(material);
   indices.abstract[material.id] = material;
 
   return material;
 }
 
 export async function insertMaterialInstance(
-  materialId: number,
-  state: MaterialInstanceAdd
+  abstractId: number,
+  state: MaterialInstanceBuilder
 ): Promise<Material> {
   const _db = await db();
 
@@ -218,7 +237,7 @@ export async function insertMaterialInstance(
       VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       `,
     [
-      materialId,
+      abstractId,
       state.name,
       type,
       state.manufacturer,
@@ -234,13 +253,71 @@ export async function insertMaterialInstance(
 
   const material = await getMaterial(lastInsertId!!);
 
-  materials.inventory.push(material);
-  indices.inventory[material.id] = material;
+  const abs = materials.getAbstract(abstractId);
+  if (abs) {
+    console.log($state.snapshot(abs));
+    abs.inventory.push(material);
+  }
+  indices.inventory[material.id] = abstractId;
 
   return material;
 }
 
-export async function insertMaterialDilution(state: MaterialDilutionAdd): Promise<Material> {
+export async function updateMaterialInstance(
+  id: number,
+  state: MaterialInstanceBuilder
+): Promise<Material> {
+  const _db = await db();
+
+  let gramsMaterial = null;
+  let gramsSolvent = null;
+  let type: MaterialInstanceType = 'PURE';
+
+  if (state.predilution != null && state.predilution > 0) {
+    const predilution = state.predilution / 100;
+    gramsMaterial = state.grams * predilution;
+    gramsSolvent = state.grams - gramsMaterial;
+    type = 'DILUTION';
+  }
+
+  await _db.execute(
+    `
+      UPDATE materials SET
+         name = $1,
+         type = $2,
+         manufacturer = $3,
+         batch_id = $4,
+         link = $5,
+         grams_available = $6,
+         grams_initial = $7,
+         grams_material = $8,
+         grams_solvent = $9,
+         created_at = $10
+      WHERE id = $11
+      `,
+    [
+      state.name,
+      type,
+      state.manufacturer,
+      state.batchId,
+      state.link,
+      state.grams,
+      state.grams,
+      gramsMaterial,
+      gramsSolvent,
+      date(state.createdAt!!),
+      id
+    ]
+  );
+
+  const material = await getMaterial(id);
+
+  materials.swap(material);
+
+  return material;
+}
+
+export async function insertMaterialDilution(state: MaterialDilutionBuilder): Promise<Material> {
   const _db = await db();
 
   if (state.gramsMaterial > state.material!!.grams_available) {
@@ -288,8 +365,8 @@ export async function insertMaterialDilution(state: MaterialDilutionAdd): Promis
 
   const dilution = await getMaterial(dilutionId!!);
 
-  materials.inventory.push(dilution);
-  indices.inventory[dilution.id] = dilution;
+  indices.abstract[state.material!!.material_id].inventory.push(dilution);
+  indices.inventory[dilution.id] = state.material!!.material_id;
 
   await spendMaterials('DILUTION', dilutionId!!, spend);
 
@@ -324,10 +401,13 @@ export async function listMaterialsAbstract(): Promise<MaterialAbstract[]> {
     material.links = links.map((l) => l.value);
   }
 
-  return materials;
+  return materials.map((m) => {
+    m.inventory = [];
+    return m;
+  });
 }
 
-export async function updateMaterialAbstract(id: number, update: MaterialAbstractEdit) {
+export async function updateMaterialAbstract(id: number, update: MaterialAbstractBuilder) {
   const _db = await db();
 
   await _db.execute(
@@ -390,15 +470,17 @@ export async function listMaterials(): Promise<Material[]> {
 export async function deleteMaterialAbstract(id: number) {
   const _db = await db();
   await _db.execute('DELETE FROM materials_abstract WHERE id = $1', [id]);
-  materials.abstract = materials.abstract.filter((m) => m.id !== id);
-  materials.inventory = materials.inventory.filter((m) => m.material_id !== id);
   delete indices.abstract[id];
 }
 
-export async function deleteMaterial(id: number) {
+export async function deleteMaterial(abstractId: number, id: number) {
   const _db = await db();
-  await _db.execute('DELETE FROM materials WHERE id = $1', [id]);
-  materials.inventory = materials.inventory.filter((m) => m.id !== id);
+  const r = await _db.execute('DELETE FROM materials WHERE id = $1', [id]);
+  console.log(r);
+  const material = materials.getAbstract(abstractId);
+  if (material) {
+    material.inventory = material.inventory.filter((m) => m.id !== id);
+  }
   delete indices.inventory[id];
 }
 
@@ -596,7 +678,7 @@ export async function listMaterialHistory<T extends MaterialTargetType>(
  * Delete the formula with the given ID and resupply the material inventory
  * with the materials used to create it.
  */
-export async function undoDilution(id: number) {
+export async function undoDilution(abstractId: number, id: number) {
   await restoreMaterials(id);
-  await deleteMaterial(id);
+  await deleteMaterial(abstractId, id);
 }

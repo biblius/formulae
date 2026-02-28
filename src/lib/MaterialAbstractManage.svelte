@@ -2,69 +2,46 @@
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
-  import FragranceWheel from '$lib/FragranceWheel.svelte';
-  import { CircleQuestionMark, RefreshCw } from '@lucide/svelte';
-  import * as HoverCard from '$lib/components/ui/hover-card/index.js';
-  import type { MaterialAbstractAdd } from './types';
+  import { Check, X } from '@lucide/svelte';
+  import type { MaterialAbstractBuilder } from './types';
   import MultiInput from './components/MultiInput.svelte';
   import * as Select from './components/ui/select';
-  import { insertMaterialAbstract, MATERIAL_TYPES, materialType } from './data/materials.svelte';
+  import { MATERIAL_TYPES, materialType } from './data/materials.svelte';
   import Textarea from './components/Textarea.svelte';
 
-  let { onSubmit } = $props();
+  let {
+    headerText,
+    onSubmit,
+    onCancel = (state) => state.reset(),
+    state = $bindable<MaterialAbstractBuilder>({
+      type: 'EO',
+      linkInput: '',
+      links: [],
+      tagInput: '',
+      tags: [],
 
-  let state: MaterialAbstractAdd = $state<MaterialAbstractAdd>({
-    name: null,
-    type: 'EO',
-    description: null,
-    family: null,
-    cas: null,
-    linkInput: '',
-    links: [],
-    tagInput: '',
-    tags: [],
-
-    reset() {
-      this.name = null;
-      this.type = 'EO';
-      this.description = null;
-      this.family = null;
-      this.cas = null;
-      this.links = [];
-      this.linkInput = '';
-      this.tagInput = '';
-      this.tags = [];
-    }
-  });
-
-  async function createMaterialAbstract() {
-    if (state.name == null) {
-      console.warn('no name');
-      return;
-    }
-
-    if (state.type == null) {
-      console.warn('no type');
-      return;
-    }
-
-    if (state.tagInput) {
-      state.tags.push(state.tagInput);
-    }
-
-    if (state.linkInput) {
-      state.links.push(state.linkInput);
-    }
-
-    await insertMaterialAbstract(state);
-
-    state.reset();
-    onSubmit();
-  }
+      reset() {
+        this.name = undefined;
+        this.type = 'EO';
+        this.description = undefined;
+        this.family = undefined;
+        this.cas = undefined;
+        this.links = [];
+        this.linkInput = '';
+        this.tagInput = '';
+        this.tags = [];
+      }
+    })
+  }: {
+    headerText: string;
+    onSubmit: (m: MaterialAbstractBuilder) => void;
+    onCancel?: (m: MaterialAbstractBuilder) => void;
+    state?: MaterialAbstractBuilder;
+  } = $props();
 </script>
 
 <div class="m-2 mx-auto flex flex-wrap items-center justify-center gap-1 rounded-md p-2">
-  <h3 class="text-sm text-muted-foreground">Add definition</h3>
+  <h3 class="text-sm text-muted-foreground">{headerText}</h3>
 
   <div class="flex w-full items-center justify-center">
     <div class="w-1/2">
@@ -114,19 +91,7 @@
 
   <div class="flex w-full items-center justify-center">
     <div class="w-1/2">
-      <div class="flex items-center">
-        <Label for="category" class="mr-1 text-xs">Family</Label>
-
-        <HoverCard.Root openDelay={200} closeDelay={200}>
-          <HoverCard.Trigger>
-            <CircleQuestionMark size={14} />
-          </HoverCard.Trigger>
-          <HoverCard.Content side="right" class="w-full">
-            <FragranceWheel />
-          </HoverCard.Content>
-        </HoverCard.Root>
-      </div>
-
+      <Label for="category" class="mr-1 text-xs">Family</Label>
       <Input
         id="category"
         bind:value={state.family}
@@ -153,10 +118,8 @@
     </div>
   </div>
 
-  <div class="mx-auto flex w-full justify-center gap-2 py-2">
-    <Button class="w-32" type="button" variant="secondary" onclick={() => state.reset()}
-      ><RefreshCw /></Button
-    >
-    <Button onclick={() => createMaterialAbstract()} class="w-32" type="submit">Add</Button>
+  <div class="mx-auto flex w-full items-center justify-center gap-2 py-2">
+    <Button size="icon-sm" variant="destructive" onclick={() => onCancel(state)}><X /></Button>
+    <Button size="icon-sm" onclick={() => onSubmit(state)} type="submit"><Check /></Button>
   </div>
 </div>
