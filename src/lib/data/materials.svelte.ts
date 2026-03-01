@@ -442,6 +442,12 @@ export async function updateMaterialAbstract(id: number, update: MaterialAbstrac
   }
 
   const material = await getMaterialAbstract(id);
+  const abs = materials.getAbstract(id);
+  if (abs) {
+    material.inventory = abs.inventory;
+  } else {
+    material.inventory = [];
+  }
 
   materials.swapAbstract(material);
 }
@@ -473,11 +479,14 @@ export async function deleteMaterialAbstract(id: number) {
   delete indices.abstract[id];
 }
 
-export async function deleteMaterial(abstractId: number, id: number) {
+export async function deleteMaterial(id: number) {
   const _db = await db();
-  const r = await _db.execute('DELETE FROM materials WHERE id = $1', [id]);
-  console.log(r);
-  const material = materials.getAbstract(abstractId);
+  await _db.execute('DELETE FROM materials WHERE id = $1', [id]);
+  const absId = indices.inventory[id];
+  if (absId == null) {
+    return;
+  }
+  const material = materials.getAbstract(absId);
   if (material) {
     material.inventory = material.inventory.filter((m) => m.id !== id);
   }
@@ -678,7 +687,7 @@ export async function listMaterialHistory<T extends MaterialTargetType>(
  * Delete the formula with the given ID and resupply the material inventory
  * with the materials used to create it.
  */
-export async function undoDilution(abstractId: number, id: number) {
+export async function undoDilution(id: number) {
   await restoreMaterials(id);
-  await deleteMaterial(abstractId, id);
+  await deleteMaterial(id);
 }

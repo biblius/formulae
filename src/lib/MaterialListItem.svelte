@@ -16,12 +16,11 @@
   import MaterialAbstractManage from './MaterialAbstractManage.svelte';
 
   let {
-    material = $bindable()
+    material
   }: {
     material: MaterialAbstract;
   } = $props();
 
-  let editing = $state(false);
   let open = $state(false);
   let deleteDialogOpen = $state(false);
 
@@ -36,33 +35,33 @@
     }
   }
 
-  let editState = $state<MaterialAbstractBuilder>({
-    name: material.name,
-    description: material.description,
-    type: material.type,
-    tags: material.tags,
-    links: material.links,
-    tagInput: '',
-    linkInput: '',
-
-    reset() {
-      this.name = material.name;
-      this.description = material.description;
-      this.type = material.type;
-      this.tags = material.tags.map((t) => t);
-      this.links = material.links.map((l) => l);
-      this.tagInput = '';
-      this.linkInput = '';
-    }
-  });
+  let editState = $state<MaterialAbstractBuilder | null>(null);
 
   function toggleEdit() {
-    if (editing) {
+    if (editState != null) {
       cancelEdit();
       return;
     }
 
-    editing = true;
+    editState = {
+      name: material.name,
+      description: material.description,
+      type: material.type,
+      tags: material.tags,
+      links: material.links,
+      tagInput: '',
+      linkInput: '',
+
+      reset() {
+        this.name = material.name;
+        this.description = material.description;
+        this.type = material.type;
+        this.tags = material.tags.map((t) => t);
+        this.links = material.links.map((l) => l);
+        this.tagInput = '';
+        this.linkInput = '';
+      }
+    };
 
     editState.reset();
   }
@@ -82,8 +81,12 @@
   }
 
   function cancelEdit() {
+    if (editState == null) {
+      return;
+    }
+
     editState.reset();
-    editing = false;
+    editState = null;
   }
 
   async function deleteMaterial() {
@@ -138,7 +141,7 @@
   </div>
 
   {#if open}
-    {#if editing}
+    {#if editState != null}
       <MaterialAbstractManage
         headerText="Edit definition"
         bind:state={editState}
@@ -220,7 +223,7 @@
         {/if}
 
         <div class="flex w-full justify-between">
-          <Button variant={editing ? 'default' : 'ghost'} onclick={() => toggleEdit()}>
+          <Button variant={editState != null ? 'default' : 'ghost'} onclick={() => toggleEdit()}>
             <SquarePen />
           </Button>
 

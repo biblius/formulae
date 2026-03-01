@@ -9,6 +9,7 @@
   import MaterialAbstractManage from './MaterialAbstractManage.svelte';
   import MaterialHistory from './MaterialHistory.svelte';
   import { insertMaterialAbstract, type HistoryEntry } from './data/materials.svelte';
+  import MaterialInventoryTable from './MaterialInventoryTable.svelte';
 
   let {
     materialsAbstract,
@@ -17,6 +18,15 @@
     materialsAbstract: MaterialAbstract[];
     history: HistoryEntry<'DILUTION'>[];
   } = $props();
+
+  let display = $state<'full' | 'inventory'>(
+    (localStorage.getItem('materialsDisplay') as 'full' | 'inventory') ?? 'full'
+  );
+
+  function selectDisplay(value: 'full' | 'inventory') {
+    localStorage.setItem('materialsDisplay', value);
+    display = value;
+  }
 
   let showHistory = $state(false);
   let searching = $state('');
@@ -117,24 +127,46 @@
         onclick={() => (adding = !adding)}><Plus /></Button
       >
     </div>
+
+    <div class="flex w-full justify-end">
+      <Select.Root
+        type="single"
+        bind:value={display}
+        onValueChange={(v) => selectDisplay(v as 'full' | 'inventory')}
+      >
+        <Select.Trigger class="text-center">
+          {display === 'full' ? 'Full' : 'Inventory'}
+        </Select.Trigger>
+        <Select.Content>
+          <Select.Item value="full" label="full">Full</Select.Item>
+          <Select.Item value="inventory" label="inventory">Inventory</Select.Item>
+        </Select.Content>
+      </Select.Root>
+    </div>
   </h2>
 
-  <ul class="w-full">
-    {#if adding}
-      <MaterialAbstractManage
-        headerText={'Add definition'}
-        onSubmit={createMaterialAbstract}
-        onCancel={(state) => {
-          state.reset();
-          adding = false;
-        }}
-      />
-    {/if}
+  {#if adding}
+    <MaterialAbstractManage
+      headerText={'Add definition'}
+      onSubmit={createMaterialAbstract}
+      onCancel={(state) => {
+        state.reset();
+        adding = false;
+      }}
+    />
+  {/if}
 
-    {#each displayAbstract as _, i}
-      <MaterialListItem bind:material={displayAbstract[i]} />
-    {/each}
-  </ul>
+  {#if display === 'full'}
+    <ul class="w-full">
+      {#each displayAbstract as _, i}
+        <MaterialListItem material={displayAbstract[i]} />
+      {/each}
+    </ul>
+  {/if}
+
+  {#if display === 'inventory'}
+    <MaterialInventoryTable definitions={displayAbstract} />
+  {/if}
 
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->

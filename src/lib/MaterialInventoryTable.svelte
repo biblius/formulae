@@ -15,9 +15,7 @@
   import MaterialInstanceManage from './MaterialInstanceManage.svelte';
   import { parseDateTime } from '@internationalized/date';
 
-  let { material }: { material: MaterialAbstract } = $props();
-
-  let adding = $state(false);
+  let { definitions }: { definitions: MaterialAbstract[] } = $props();
 
   let editState: { id: number; builder: MaterialInstanceBuilder } | null = $state(null);
 
@@ -76,58 +74,35 @@
 </script>
 
 <div class="m-2 flex flex-wrap justify-center space-y-2">
-  <h4 class="my-2 flex w-full items-center gap-2 border-b">
-    <p class="text-muted-foreground">Inventory</p>
-    <div class="flex justify-center">
-      <Button
-        size="icon-sm"
-        variant={adding ? 'default' : 'ghost'}
-        onclick={() => (adding = !adding)}><Plus /></Button
-      >
-    </div>
-  </h4>
+  <div class="w-full overflow-x-auto">
+    <table class="my-6 w-full border-collapse">
+      <thead>
+        <tr class="bg-primary/10">
+          <th class="p-2 text-left text-sm text-muted-foreground">Definition</th>
+          <th class="p-2 text-left text-sm text-muted-foreground">Name</th>
+          <th class="p-2 text-left text-sm text-muted-foreground">Available</th>
+          <th class="p-2 text-left text-sm text-muted-foreground">Type</th>
+          <th class="p-2 text-left text-sm text-muted-foreground">Manufacturer</th>
+          <th class="p-2 text-left text-sm text-muted-foreground">Batch</th>
+          <th class="p-2 text-left text-sm text-muted-foreground">Predilution</th>
+          <th class="p-2 text-left text-sm text-muted-foreground">Link</th>
+          <th class="p-2 text-left text-sm text-muted-foreground">Created</th>
 
-  {#if adding}
-    <AddMaterial onSubmit={() => (adding = false)} {material} />
-  {/if}
+          <!-- BUTTON PLACEHOLDERS -->
 
-  {#if material.inventory.length === 0}
-    <div class="text-sm text-muted-foreground italic">No inventory available</div>
-  {:else if editState != null}
-    <MaterialInstanceManage
-      bind:state={editState.builder}
-      {material}
-      onSubmit={editMaterialInstance}
-      onCancel={() => {
-        editState?.builder.reset();
-        editState = null;
-      }}
-    />
-  {:else}
-    <div class="w-full overflow-x-auto">
-      <table class="my-6 w-full border-collapse">
-        <thead>
-          <tr class="bg-primary/10">
-            <th class="p-2 text-left text-sm text-muted-foreground">Name</th>
-            <th class="p-2 text-left text-sm text-muted-foreground">Available</th>
-            <th class="p-2 text-left text-sm text-muted-foreground">Type</th>
-            <th class="p-2 text-left text-sm text-muted-foreground">Manufacturer</th>
-            <th class="p-2 text-left text-sm text-muted-foreground">Batch</th>
-            <th class="p-2 text-left text-sm text-muted-foreground">Predilution</th>
-            <th class="p-2 text-left text-sm text-muted-foreground">Link</th>
-            <th class="p-2 text-left text-sm text-muted-foreground">Created</th>
-
-            <!-- BUTTON PLACEHOLDERS -->
-
-            <th class="p-2 text-left text-sm text-muted-foreground"></th>
-            <th class="p-2 text-left text-sm text-muted-foreground"></th>
-          </tr>
-        </thead>
-
-        <tbody class="divide-y">
+          <th class="p-2 text-left text-sm text-muted-foreground"></th>
+          <th class="p-2 text-left text-sm text-muted-foreground"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+        {#each definitions as material}
           {#each material.inventory as inventoryMaterial}
             <tr>
-              <td class="gap-2 p-2 font-medium wrap-anywhere">
+              <td class="max-w-sm min-w-20 p-2 font-medium wrap-anywhere">
+                {material.name}
+              </td>
+
+              <td class="max-w-sm min-w-20 items-center gap-2 p-2 font-medium wrap-anywhere">
                 {inventoryMaterial.name ?? 'Unnamed material'}
               </td>
 
@@ -178,8 +153,6 @@
               </td>
 
               <td class="p-2 font-mono text-sm">
-                <!-- UNDO BUTTON -->
-
                 {#if inventoryMaterial.grams_material != null && materials.isDilutionTarget(inventoryMaterial.id)}
                   <Dialog.Root
                     open={undoDialogOpen === inventoryMaterial.id}
@@ -263,9 +236,27 @@
                 </Dialog.Root>
               </td>
             </tr>
+
+            {#if editState != null && editState.id === inventoryMaterial.id}
+              <tr class="w-full justify-center">
+                <td colspan="9" class="w-full text-center">
+                  <div class="flex w-full justify-center">
+                    <MaterialInstanceManage
+                      bind:state={editState.builder}
+                      {material}
+                      onSubmit={editMaterialInstance}
+                      onCancel={() => {
+                        editState?.builder.reset();
+                        editState = null;
+                      }}
+                    />
+                  </div>
+                </td>
+              </tr>
+            {/if}
           {/each}
-        </tbody>
-      </table>
-    </div>
-  {/if}
+        {/each}
+      </tbody>
+    </table>
+  </div>
 </div>
