@@ -40,11 +40,17 @@
 
   // let formula: FormulaBuilder = $state();
 
-  let materialTotal = $derived(
+  /**
+   * Absolute mass of material before dilution
+   */
+  let materialMass = $derived(
     formula.materials.reduce((acc: number, material: MaterialSpend) => acc + material.grams, 0)
   );
 
-  let materialDilutionTotal = $derived(
+  /**
+   * Absolute mass of material after dilution
+   */
+  let materialMassAbsolute = $derived(
     formula.materials.reduce((acc: number, material: MaterialSpend) => {
       if (material.original.grams_material != null && material.original.grams_solvent != null) {
         const ratio =
@@ -56,7 +62,10 @@
     }, 0)
   );
 
-  let concentrationDilutionTotal = $derived(materialDilutionTotal / formula.targetGrams);
+  /**
+   * % of material after dilution
+   */
+  let concentrationMaterialAbsolute = $derived(materialMassAbsolute / formula.targetGrams);
 
   let saveEnabled = $derived(
     formula.name &&
@@ -88,7 +97,10 @@
     return materials.inventory();
   }
 
-  function concentrationAbs(material: MaterialSpend) {
+  /**
+   * Concentration of material in total mass including solvent, after dilution
+   */
+  function concentrationTotal(material: MaterialSpend) {
     const original = material.original;
 
     if (original.grams_material != null && original.grams_solvent != null) {
@@ -98,6 +110,21 @@
     }
 
     return material.grams / formula.targetGrams;
+  }
+
+  /**
+   * Concentration of material in material mass, after dilution
+   */
+  function concentrationMaterial(material: MaterialSpend) {
+    const original = material.original;
+
+    if (original.grams_material != null && original.grams_solvent != null) {
+      let concentration =
+        original.grams_material / (original.grams_material + original.grams_solvent);
+      return (material.grams * concentration) / materialMassAbsolute;
+    }
+
+    return material.grams / materialMassAbsolute;
   }
 </script>
 
@@ -196,6 +223,7 @@
       <th class="w-1/4 border p-2 text-center">Amount</th>
       <th class="w-1/4 border p-2 text-center">% material</th>
       <th class="w-1/4 border p-2 text-center">% material (undiluted)</th>
+      <th class="w-1/4 border p-2 text-center">% material total</th>
       <th class="w-1/4 border p-2 text-center">% total</th>
     </tr>
   </thead>
@@ -246,18 +274,28 @@
         <!-- % MATERIAL -->
 
         <td class="border p-2 text-center">
-          {#if materialTotal !== 0}
-            {pf.format(material.grams / materialTotal)}
+          {#if materialMass !== 0}
+            {pf.format(material.grams / materialMass)}
           {:else}
             {pf.format(0)}
           {/if}
         </td>
 
-        <!-- % MATERIAL ABSOLUTE -->
+        <!-- % MATERIAL UNDILUTED -->
 
         <td class="border p-2 text-center">
-          {#if materialTotal !== 0}
-            {pf.format(concentrationAbs(material))}
+          {#if materialMass !== 0}
+            {pf.format(concentrationMaterial(material))}
+          {:else}
+            {pf.format(0)}
+          {/if}
+        </td>
+
+        <!-- % MATERIAL TOTAL -->
+
+        <td class="border p-2 text-center">
+          {#if materialMass !== 0}
+            {pf.format(concentrationTotal(material))}
           {:else}
             {pf.format(0)}
           {/if}
@@ -271,11 +309,12 @@
 
     <tr class="text-muted-foreground">
       <td class="border p-2 text-center">Solvent</td>
-      <td class="border p-2 text-center">{gf.format(formula.targetGrams - materialTotal)}</td>
+      <td class="border p-2 text-center">{gf.format(formula.targetGrams - materialMass)}</td>
+      <td class="border p-2 text-center">-</td>
       <td class="border p-2 text-center">-</td>
       <td class="border p-2 text-center">-</td>
       <td class="border p-2 text-center"
-        >{pf.format((formula.targetGrams - materialTotal) / formula.targetGrams)}</td
+        >{pf.format((formula.targetGrams - materialMass) / formula.targetGrams)}</td
       >
     </tr>
 
@@ -288,8 +327,10 @@
 
       <td class="border p-2 text-center font-bold"> - </td>
 
+      <td class="border p-2 text-center font-bold"> - </td>
+
       <td class="border p-2 text-center font-bold">
-        {pf.format(concentrationDilutionTotal)}
+        {pf.format(concentrationMaterialAbsolute)}
       </td>
 
       <td class="border p-2 text-center font-bold">{pf.format(1)}</td>

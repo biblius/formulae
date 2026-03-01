@@ -29,11 +29,9 @@
 
   let createdAt = $derived(df.format(new Date(formula.created_at)));
 
-  let materialTotal = $derived(
-    formula.materials.reduce((acc, material) => acc + material.grams, 0)
-  );
+  let materialMass = $derived(formula.materials.reduce((acc, material) => acc + material.grams, 0));
 
-  let materialDilutionTotal = $derived(
+  let materialMassAbsolute = $derived(
     formula.materials.reduce((acc, material) => {
       const original = materials.get(material.material_id);
 
@@ -50,7 +48,7 @@
     }, 0)
   );
 
-  let concentrationTotalAbs = $derived(materialDilutionTotal / formula.grams_total);
+  let concentrationMaterialAbsolute = $derived(materialMassAbsolute / formula.grams_total);
 
   async function toggleOpen() {
     open = !open;
@@ -83,10 +81,10 @@
   }
 
   function concentration(material: FormulaMaterial): number {
-    return material.grams / materialTotal;
+    return material.grams / materialMass;
   }
 
-  function concentrationAbs(material: FormulaMaterial): number {
+  function concentrationTotal(material: FormulaMaterial): number {
     const original = materials.get(material.material_id);
 
     if (!original) {
@@ -96,10 +94,29 @@
     if (original.grams_material != null && original.grams_solvent != null) {
       let concentration =
         original.grams_material / (original.grams_material + original.grams_solvent);
-      return (material.grams * concentration) / materialTotal;
+      return (material.grams * concentration) / formula.grams_total;
     }
 
-    return material.grams / materialTotal;
+    return material.grams / formula.grams_total;
+  }
+
+  /**
+   * Concentration of material in material mass, after dilution
+   */
+  function concentrationMaterial(material: FormulaMaterial) {
+    const original = materials.get(material.material_id);
+
+    if (!original) {
+      return -1;
+    }
+
+    if (original.grams_material != null && original.grams_solvent != null) {
+      let concentration =
+        original.grams_material / (original.grams_material + original.grams_solvent);
+      return (material.grams * concentration) / materialMassAbsolute;
+    }
+
+    return material.grams / materialMassAbsolute;
   }
 
   let builder = $state<FormulaBuilderState>({
@@ -183,6 +200,7 @@
                 <th class="p-2 pr-2 font-medium">Amount</th>
                 <th class="p-2 pr-2 font-medium">% material</th>
                 <th class="p-2 pr-2 font-medium">% material (undiluted)</th>
+                <th class="p-2 pr-2 font-medium">% material total</th>
                 <th class="p-2 pr-2 font-medium">% total</th>
               </tr>
             </thead>
@@ -207,10 +225,16 @@
                     {pf.format(concentration(material))}
                   </td>
 
-                  <!-- % MATERIAL ABS -->
+                  <!-- % MATERIAL ABSOLUTE -->
 
                   <td class="p-2 pr-2">
-                    {pf.format(concentrationAbs(material))}
+                    {pf.format(concentrationMaterial(material))}
+                  </td>
+
+                  <!-- % MATERIAL TOTAL -->
+
+                  <td class="p-2 pr-2">
+                    {pf.format(concentrationTotal(material))}
                   </td>
 
                   <!-- % TOTAL -->
@@ -228,14 +252,16 @@
 
                 <td class="p-2">-</td>
 
-                <td class="p-2">{gf.format(formula.grams_total - materialTotal)}</td>
+                <td class="p-2">{gf.format(formula.grams_total - materialMass)}</td>
+
+                <td class="p-2">-</td>
 
                 <td class="p-2">-</td>
 
                 <td class="p-2">-</td>
 
                 <td class="p-2"
-                  >{pf.format((formula.grams_total - materialTotal) / formula.grams_total)}</td
+                  >{pf.format((formula.grams_total - materialMass) / formula.grams_total)}</td
                 >
               </tr>
             </tbody>
@@ -254,7 +280,9 @@
 
                 <td class="p-2 pr-2">-</td>
 
-                <td class="p-2 pr-2">{pf.format(concentrationTotalAbs)}</td>
+                <td class="p-2 pr-2">-</td>
+
+                <td class="p-2 pr-2">{pf.format(concentrationMaterialAbsolute)}</td>
 
                 <td class="p-2 pr-2">{pf.format(1)}</td>
               </tr>
