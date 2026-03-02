@@ -1,10 +1,12 @@
 <script lang="ts">
   import * as Dialog from './components/ui/dialog';
-  import { Check, SquarePen, Trash, Undo, X } from '@lucide/svelte';
+  import { BottleWine, Check, Copy, FlaskRound, SquarePen, Trash, Undo, X } from '@lucide/svelte';
   import { Button, buttonVariants } from '$lib/components/ui/button';
   import {
+    cloneFormulaDraft,
     deleteFormula,
     insertFormulaNote,
+    spendFormulaDraft,
     undoFormula,
     updateFormula,
     type FormulaType
@@ -13,7 +15,7 @@
   import { df, gf, pf } from './utils';
   import FormulaNote from './FormulaNote.svelte';
   import type { FormulaBuilder as FormulaBuilderState, Formula, FormulaMaterial } from './types';
-  import { tick } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import Textarea from './components/Textarea.svelte';
   import FormulaBuilder from './FormulaBuilder.svelte';
 
@@ -25,7 +27,10 @@
   let deleteDialogOpen = $state(false);
   let undoDialogOpen = $state(false);
 
-  let { formula = $bindable() }: { formula: Formula<FormulaType> } = $props();
+  let {
+    formula = $bindable(),
+    onDraftSpend = () => {}
+  }: { formula: Formula<FormulaType>; onDraftSpend?: () => void } = $props();
 
   let createdAt = $derived(df.format(new Date(formula.created_at)));
 
@@ -49,6 +54,13 @@
   );
 
   let concentrationMaterialAbsolute = $derived(materialMassAbsolute / formula.grams_total);
+
+  let exceeded = $derived(
+    formula.materials.filter((material) => {
+      const available = materials.get(material.material_id)!!.grams_available;
+      return material.grams > available;
+    })
+  );
 
   async function toggleOpen() {
     open = !open;
@@ -333,8 +345,35 @@
 
         <div>
           {#if formula.type === 'DRAFT'}
+            <Button
+              class="z-50"
+              variant="ghost"
+              disabled={formula.materials.length < 1 || exceeded.length > 0}
+              onclick={() => {
+                onDraftSpend();
+                if (formula.materials.length < 1) {
+                  console.warn('no materials');
+                  return;
+                }
+
+                spendFormulaDraft(formula as Formula<'DRAFT'>);
+                cancelAddNote();
+                builder.reset();
+                open = false;
+              }}><FlaskRound /></Button
+            >
             <Button class="z-50" variant="ghost" onclick={() => (editing = !editing)}
               ><SquarePen /></Button
+            >
+            <Button
+              class="z-50"
+              variant="ghost"
+              onclick={() => {
+                cloneFormulaDraft(formula as Formula<'DRAFT'>);
+                cancelAddNote();
+                builder.reset();
+                open = false;
+              }}><Copy /></Button
             >
           {/if}
           <!-- UNDO FORMULA -->

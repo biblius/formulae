@@ -11,6 +11,7 @@ import type {
   MaterialSpend
 } from '../types';
 import { date } from '../utils';
+import { formulae, initFormulae } from './formulae.svelte';
 
 export type MaterialState = {
   historyD: HistoryEntry<'DILUTION'>[];
@@ -489,6 +490,12 @@ export async function deleteMaterial(id: number) {
   const material = materials.getAbstract(absId);
   if (material) {
     material.inventory = material.inventory.filter((m) => m.id !== id);
+  }
+  for (const f of formulae.formulae) {
+    f.materials = f.materials.filter((m) => m.material_id !== id);
+  }
+  for (const f of formulae.drafts) {
+    f.materials = f.materials.filter((m) => m.material_id !== id);
   }
   delete indices.inventory[id];
 }

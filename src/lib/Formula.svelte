@@ -60,7 +60,7 @@
   {#if adding}
     <FormulaBuilder onSave={saveFormula} onCancel={() => (adding = false)} />
   {:else}
-    <FormulaList {display} onSelect={selectDisplay} />
+    <FormulaList {display} onSelect={(v) => selectDisplay(v)} />
   {/if}
 
   <!-- HISTORY -->

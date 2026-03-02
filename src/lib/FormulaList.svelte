@@ -28,7 +28,12 @@
 
   {#if display === 'DRAFT'}
     {#each formulae.drafts as _, i}
-      <FormulaListItem bind:formula={formulae.drafts[i]} />
+      <FormulaListItem
+        bind:formula={formulae.drafts[i]}
+        onDraftSpend={() => {
+          onSelect('MIXTURE');
+        }}
+      />
     {/each}
   {/if}
 </ul>

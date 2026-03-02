@@ -1,6 +1,6 @@
 import { getLocalTimeZone, now } from '@internationalized/date';
 import { db, insertValues } from '../db';
-import { restoreMaterials, spendMaterials } from './materials.svelte';
+import { materials, restoreMaterials, spendMaterials } from './materials.svelte';
 import type { Formula, FormulaBuilder, FormulaMaterial, FormulaNote } from '../types';
 import { date } from '../utils';
 
@@ -44,8 +44,6 @@ export async function initFormulae() {
       formulae.formulae.push(formula as Formula<'MIXTURE'>);
     }
   }
-  console.log($state.snapshot(formulae.drafts));
-  console.log($state.snapshot(formulae.formulae));
 }
 
 export async function insertFormula(state: FormulaBuilder): Promise<Formula<typeof state.type>> {
@@ -72,13 +70,87 @@ export async function insertFormula(state: FormulaBuilder): Promise<Formula<type
   const formula = await getFormula(formulaId!!);
 
   if (formula.type === 'DRAFT') {
-    formulae.drafts.unshift(formula as Formula<'DRAFT'>);
+    formulae.drafts.push(formula as Formula<'DRAFT'>);
   } else if (formula.type === 'MIXTURE') {
-    formulae.formulae.unshift(formula as Formula<'MIXTURE'>);
+    formulae.formulae.push(formula as Formula<'MIXTURE'>);
   }
 
   if (state.type === 'MIXTURE') {
     await spendMaterials('FORMULA', formulaId!!, state.materials);
+  }
+
+  return formula;
+}
+
+export async function cloneFormulaDraft(original: Formula<'DRAFT'>) {
+  const _db = await db();
+  const { lastInsertId: formulaId } = await _db.execute(
+    `
+      INSERT INTO formulae(
+        name,
+        type,
+        description,
+        grams_total
+      ) 
+      VALUES($1, $2, $3, $4)
+      `,
+    [`Copy of ${original.name}`, original.type, original.description, original.grams_total]
+  );
+
+  if (original.materials.length > 0) {
+    await insertValues(
+      'formula_materials',
+      ['material_id', 'formula_id', 'grams'],
+      original.materials.map((material) => [material.material_id, formulaId!!, material.grams])
+    );
+  }
+
+  const formula = await getFormula(formulaId!!);
+
+  if (formula.type === 'DRAFT') {
+    formulae.drafts.push(formula as Formula<'DRAFT'>);
+  } else if (formula.type === 'MIXTURE') {
+    formulae.formulae.push(formula as Formula<'MIXTURE'>);
+  }
+
+  return formula;
+}
+
+export async function spendFormulaDraft(draft: Formula<'DRAFT'>) {
+  const _db = await db();
+  const { lastInsertId: formulaId } = await _db.execute(
+    `
+      INSERT INTO formulae(
+        name,
+        type,
+        description,
+        grams_total
+      ) 
+      VALUES($1, $2, $3, $4)
+      `,
+    [draft.name, 'MIXTURE', draft.description, draft.grams_total]
+  );
+
+  await insertValues(
+    'formula_materials',
+    ['material_id', 'formula_id', 'grams'],
+    draft.materials.map((material) => [material.material_id, formulaId!!, material.grams])
+  );
+
+  const formula = await getFormula(formulaId!!);
+
+  await spendMaterials(
+    'FORMULA',
+    formulaId!!,
+    draft.materials.map((m) => {
+      return { original: materials.get(m.material_id)!!, grams: m.grams };
+    })
+  );
+
+  if (formula.type === 'DRAFT') {
+    formulae.drafts.push(formula as Formula<'DRAFT'>);
+  } else if (formula.type === 'MIXTURE') {
+    formulae.formulae.push(formula as Formula<'MIXTURE'>);
   }
 
   return formula;
