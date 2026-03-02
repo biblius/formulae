@@ -236,6 +236,10 @@ export async function deleteFormulaNote(formulaId: number, noteId: number): Prom
   if (formula) {
     formula.notes = formula.notes.filter((n) => n.id !== noteId);
   }
+  const draft = formulae.drafts.find((f) => f.id === formulaId);
+  if (draft) {
+    draft.notes = draft.notes.filter((n) => n.id !== noteId);
+  }
 }
 
 export async function listFormulae(): Promise<Formula<FormulaType>[]> {
