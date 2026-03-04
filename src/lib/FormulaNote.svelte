@@ -5,7 +5,6 @@
   import type { FormulaNote } from './types';
   import { dtf } from './utils';
   import Textarea from './components/Textarea.svelte';
-  import { updateTrialNote } from './data/trials.svelte';
 
   let { note = $bindable() }: { note: FormulaNote } = $props();
   let editing = $state(false);
@@ -15,7 +14,7 @@
     const content = note.content?.trim();
     if (!content) return;
 
-    await updateTrialNote(note.id, content);
+    await updateFormulaNote(note.id, content);
 
     editing = false;
     lastContent = null;
