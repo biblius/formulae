@@ -45,21 +45,25 @@
 
     editState = {
       name: material.name,
-      description: material.description,
       type: material.type,
-      tags: material.tags,
+      description: material.description,
+      family: material.family,
+      cas: material.cas_number,
+      linkInput: '',
       links: material.links,
       tagInput: '',
-      linkInput: '',
+      tags: material.tags,
 
       reset() {
         this.name = material.name;
-        this.description = material.description;
         this.type = material.type;
-        this.tags = material.tags.map((t) => t);
-        this.links = material.links.map((l) => l);
-        this.tagInput = '';
+        this.description = material.description;
+        this.family = material.family;
+        this.cas = material.cas_number;
         this.linkInput = '';
+        this.links = material.links.map((l) => l);
+        this.tags = material.tags.map((t) => t);
+        this.tagInput = '';
       }
     };
 
