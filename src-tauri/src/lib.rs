@@ -39,6 +39,13 @@ pub fn run() {
             ),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 6,
+            description: "Add type to formula materials",
+
+            sql: include_str!("../../migrations/20260321090015_formula_materials_type.up.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

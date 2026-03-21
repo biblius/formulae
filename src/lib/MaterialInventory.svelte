@@ -126,80 +126,125 @@
 
         <tbody class="divide-y">
           {#each material.inventory as inventoryMaterial}
-            <tr>
-              <td class="gap-2 p-2 font-medium wrap-anywhere">
-                {inventoryMaterial.name ?? 'Unnamed material'}
-              </td>
+            {#key inventoryMaterial.id}
+              <tr>
+                <td class="gap-2 p-2 font-medium wrap-anywhere">
+                  {inventoryMaterial.name ?? 'Unnamed material'}
+                </td>
 
-              <td class="p-2 font-medium">
-                {gf.format(inventoryMaterial.grams_available)}
-              </td>
+                <td class="p-2 font-medium">
+                  {gf.format(inventoryMaterial.grams_available)}
+                </td>
 
-              <td class="p-2 font-medium">
-                {inventoryMaterial.type}
-              </td>
+                <td class="p-2 font-medium">
+                  {inventoryMaterial.type}
+                </td>
 
-              <td class="p-2 font-medium">
-                {inventoryMaterial.manufacturer ?? '-'}
-              </td>
+                <td class="p-2 font-medium">
+                  {inventoryMaterial.manufacturer ?? '-'}
+                </td>
 
-              <td class="p-2 font-mono text-xs font-medium">
-                {inventoryMaterial.batch_id ?? '-'}
-              </td>
+                <td class="p-2 font-mono text-xs font-medium">
+                  {inventoryMaterial.batch_id ?? '-'}
+                </td>
 
-              <td class="p-2 font-mono text-sm">
-                {#if inventoryMaterial.grams_material && inventoryMaterial.grams_solvent}
-                  {pf.format(
-                    inventoryMaterial.grams_material /
-                      (inventoryMaterial.grams_solvent + inventoryMaterial.grams_material)
-                  )}
-                {:else}
-                  -
-                {/if}
-              </td>
+                <td class="p-2 font-mono text-sm">
+                  {#if inventoryMaterial.grams_material && inventoryMaterial.grams_solvent}
+                    {pf.format(
+                      inventoryMaterial.grams_material /
+                        (inventoryMaterial.grams_solvent + inventoryMaterial.grams_material)
+                    )}
+                  {:else}
+                    -
+                  {/if}
+                </td>
 
-              <td class="p-2 font-medium">
-                {#if inventoryMaterial.link != null}
-                  <Button
-                    size="icon-sm"
-                    variant="link"
-                    title={inventoryMaterial.link}
-                    onclick={() => openUrl(inventoryMaterial.link!!)}
-                  >
-                    <ExternalLink />
-                  </Button>
-                {:else}
-                  <span class="font-mono text-sm">-</span>
-                {/if}
-              </td>
+                <td class="p-2 font-medium">
+                  {#if inventoryMaterial.link != null}
+                    <Button
+                      size="icon-sm"
+                      variant="link"
+                      title={inventoryMaterial.link}
+                      onclick={() => openUrl(inventoryMaterial.link!!)}
+                    >
+                      <ExternalLink />
+                    </Button>
+                  {:else}
+                    <span class="font-mono text-sm">-</span>
+                  {/if}
+                </td>
 
-              <td class="p-2 font-mono text-sm">
-                {df.format(new Date(inventoryMaterial.created_at))}
-              </td>
+                <td class="p-2 font-mono text-sm">
+                  {df.format(new Date(inventoryMaterial.created_at))}
+                </td>
 
-              <td class="p-2 font-mono text-sm">
-                <!-- UNDO BUTTON -->
+                <td class="p-2 font-mono text-sm">
+                  <!-- UNDO BUTTON -->
 
-                {#if inventoryMaterial.grams_material != null && materials.isDilutionTarget(inventoryMaterial.id)}
+                  {#if inventoryMaterial.grams_material != null && materials.isDilutionTarget(inventoryMaterial.id)}
+                    <Dialog.Root
+                      open={undoDialogOpen === inventoryMaterial.id}
+                      onOpenChange={(open) => (undoDialogOpen = open ? inventoryMaterial.id : null)}
+                    >
+                      <Dialog.Trigger>
+                        <Button size="icon-sm" variant="ghost" class="hover:text-destructive"
+                          ><Undo /></Button
+                        >
+                      </Dialog.Trigger>
+                      <Dialog.Content>
+                        <Dialog.Header>
+                          <Dialog.Title
+                            >Undo dilution {inventoryMaterial.name ??
+                              'Unnamed material'}?</Dialog.Title
+                          >
+                          <Dialog.Description
+                            >This will delete the dilution and restore the material used to create
+                            it. This action cannot be undone.</Dialog.Description
+                          >
+                        </Dialog.Header>
+
+                        <Dialog.Footer>
+                          <Dialog.Close class={buttonVariants({ variant: 'default' })}
+                            >Cancel</Dialog.Close
+                          >
+                          <Button
+                            type="submit"
+                            variant="destructive"
+                            onclick={() => {
+                              undoDilution(inventoryMaterial.id);
+                              undoDialogOpen = null;
+                            }}>Undo</Button
+                          >
+                        </Dialog.Footer>
+                      </Dialog.Content>
+                    </Dialog.Root>
+
+                    <!-- EDIT BUTTON -->
+                  {:else if !materials.isDilutionTarget(inventoryMaterial.id)}
+                    <Button variant={'ghost'} onclick={() => startEdit(inventoryMaterial)}>
+                      <SquarePen />
+                    </Button>
+                  {/if}
+                </td>
+
+                <!-- DELETE BUTTON -->
+
+                <td class="p-2 font-mono text-sm">
                   <Dialog.Root
-                    open={undoDialogOpen === inventoryMaterial.id}
-                    onOpenChange={(open) => (undoDialogOpen = open ? inventoryMaterial.id : null)}
+                    open={deleteDialogOpen === inventoryMaterial.id}
+                    onOpenChange={(open) => (deleteDialogOpen = open ? inventoryMaterial.id : null)}
                   >
                     <Dialog.Trigger>
                       <Button size="icon-sm" variant="ghost" class="hover:text-destructive"
-                        ><Undo /></Button
+                        ><Trash /></Button
                       >
                     </Dialog.Trigger>
                     <Dialog.Content>
                       <Dialog.Header>
                         <Dialog.Title
-                          >Undo dilution {inventoryMaterial.name ??
-                            'Unnamed material'}?</Dialog.Title
+                          >Delete {inventoryMaterial.name ?? 'Unnamed material'}?</Dialog.Title
                         >
-                        <Dialog.Description
-                          >This will delete the dilution and restore the material used to create it.
-                          This action cannot be undone.</Dialog.Description
-                        >
+                        <Dialog.Description>This action cannot be undone.</Dialog.Description>
                       </Dialog.Header>
 
                       <Dialog.Footer>
@@ -210,59 +255,16 @@
                           type="submit"
                           variant="destructive"
                           onclick={() => {
-                            undoDilution(inventoryMaterial.id);
-                            undoDialogOpen = null;
-                          }}>Undo</Button
+                            deleteMaterial(inventoryMaterial.id);
+                            deleteDialogOpen = null;
+                          }}>Delete</Button
                         >
                       </Dialog.Footer>
                     </Dialog.Content>
                   </Dialog.Root>
-
-                  <!-- EDIT BUTTON -->
-                {:else if !materials.isDilutionTarget(inventoryMaterial.id)}
-                  <Button variant={'ghost'} onclick={() => startEdit(inventoryMaterial)}>
-                    <SquarePen />
-                  </Button>
-                {/if}
-              </td>
-
-              <!-- DELETE BUTTON -->
-
-              <td class="p-2 font-mono text-sm">
-                <Dialog.Root
-                  open={deleteDialogOpen === inventoryMaterial.id}
-                  onOpenChange={(open) => (deleteDialogOpen = open ? inventoryMaterial.id : null)}
-                >
-                  <Dialog.Trigger>
-                    <Button size="icon-sm" variant="ghost" class="hover:text-destructive"
-                      ><Trash /></Button
-                    >
-                  </Dialog.Trigger>
-                  <Dialog.Content>
-                    <Dialog.Header>
-                      <Dialog.Title
-                        >Delete {inventoryMaterial.name ?? 'Unnamed material'}?</Dialog.Title
-                      >
-                      <Dialog.Description>This action cannot be undone.</Dialog.Description>
-                    </Dialog.Header>
-
-                    <Dialog.Footer>
-                      <Dialog.Close class={buttonVariants({ variant: 'default' })}
-                        >Cancel</Dialog.Close
-                      >
-                      <Button
-                        type="submit"
-                        variant="destructive"
-                        onclick={() => {
-                          deleteMaterial(inventoryMaterial.id);
-                          deleteDialogOpen = null;
-                        }}>Delete</Button
-                      >
-                    </Dialog.Footer>
-                  </Dialog.Content>
-                </Dialog.Root>
-              </td>
-            </tr>
+                </td>
+              </tr>
+            {/key}
           {/each}
         </tbody>
       </table>

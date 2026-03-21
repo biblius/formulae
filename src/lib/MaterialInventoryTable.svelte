@@ -5,7 +5,6 @@
   import { df, gf, pf, toDateValue } from './utils';
   import { openUrl } from '@tauri-apps/plugin-opener';
   import Button, { buttonVariants } from './components/ui/button/button.svelte';
-  import AddMaterial from './AddMaterial.svelte';
   import {
     deleteMaterial,
     materials,
@@ -213,7 +212,7 @@
                   </Dialog.Trigger>
                   <Dialog.Content>
                     <Dialog.Header>
-                      <Dialog.Title
+                      <Dialog.Title class="wrap-anywhere"
                         >Delete {inventoryMaterial.name ?? 'Unnamed material'}?</Dialog.Title
                       >
                       <Dialog.Description>This action cannot be undone.</Dialog.Description>

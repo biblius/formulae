@@ -34,9 +34,17 @@
 
   let createdAt = $derived(df.format(new Date(formula.created_at)));
 
-  let materialMass = $derived(formula.materials.reduce((acc, material) => acc + material.grams, 0));
-
+  /**
+   * Material mass including solvent, if the material is a dilution.
+   */
   let materialMassAbsolute = $derived(
+    formula.materials.reduce((acc, material) => acc + material.grams, 0)
+  );
+
+  /**
+   * Pure material mass.
+   */
+  let materialMassDiluted = $derived(
     formula.materials.reduce((acc, material) => {
       const original = materials.get(material.material_id);
 
@@ -53,7 +61,7 @@
     }, 0)
   );
 
-  let concentrationMaterialAbsolute = $derived(materialMassAbsolute / formula.grams_total);
+  let concentrationMaterialAbsolute = $derived(materialMassDiluted / formula.grams_total);
 
   let exceeded = $derived(
     formula.materials.filter((material) => {
@@ -92,10 +100,6 @@
     cancelAddNote();
   }
 
-  function concentration(material: FormulaMaterial): number {
-    return material.grams / materialMass;
-  }
-
   function concentrationTotal(material: FormulaMaterial): number {
     const original = materials.get(material.material_id);
 
@@ -125,10 +129,10 @@
     if (original.grams_material != null && original.grams_solvent != null) {
       let concentration =
         original.grams_material / (original.grams_material + original.grams_solvent);
-      return (material.grams * concentration) / materialMassAbsolute;
+      return (material.grams * concentration) / materialMassDiluted;
     }
 
-    return material.grams / materialMassAbsolute;
+    return material.grams / materialMassDiluted;
   }
 
   let builder = $state<FormulaBuilderState>({
@@ -141,9 +145,8 @@
         grams: m.grams
       };
     }),
-    solventGrams:
-      formula.grams_total - formula.materials.reduce((acc, material) => acc + material.grams, 0),
     targetGrams: formula.grams_total,
+    useSolvent: formula.grams_total !== formula.materials.reduce((acc, m) => acc + m.grams, 0),
 
     reset() {
       this.name = formula.name;
@@ -155,9 +158,9 @@
           grams: m.grams
         };
       });
-      this.solventGrams =
-        formula.grams_total - formula.materials.reduce((acc, material) => acc + material.grams, 0);
       this.targetGrams = formula.grams_total;
+      this.useSolvent =
+        formula.grams_total !== formula.materials.reduce((acc, m) => acc + m.grams, 0);
     }
   });
 </script>
@@ -173,16 +176,25 @@
     onclick={() => toggleOpen()}
   >
     <div class="flex w-full items-center justify-between gap-2">
-      <div class="font-medium">{formula.name}</div>
-      <div class="text-sm whitespace-nowrap text-muted-foreground">
-        {formula.grams_total} g ({formula.materials.length} materials)
+      <div>
+        <div class="font-medium">{formula.name}</div>
+        <div class="text-sm whitespace-nowrap text-muted-foreground">
+          {#if formula.description}
+            <div class="text-sm text-muted-foreground">
+              {formula.description}
+            </div>
+          {/if}
+        </div>
+      </div>
+      <div class="text-muted-foreground">
+        <p>
+          {df.format(new Date(formula.created_at))}
+        </p>
+        <p>
+          {formula.grams_total} g ({formula.materials.length} materials)
+        </p>
       </div>
     </div>
-    {#if formula.description}
-      <div class="text-sm text-muted-foreground">
-        {formula.description}
-      </div>
-    {/if}
   </div>
 
   {#if open}
@@ -190,7 +202,26 @@
       <FormulaBuilder
         bind:formula={builder}
         onSave={async (f) => {
+          if (f.materials.length === 0) {
+            console.error('no materials');
+            return;
+          }
+
+          for (const material of f.materials) {
+            if (material.grams <= 0) {
+              console.error('material cannot be 0 or less!');
+              return;
+            }
+          }
+
+          if (!f.useSolvent) {
+            f.targetGrams = formula.materials.reduce((acc, m) => acc + m.grams, 0);
+          }
+
           await updateFormula(formula.id, f);
+
+          f.reset();
+
           editing = false;
         }}
         onCancel={() => {
@@ -210,9 +241,9 @@
                 <th class="p-2 pr-2 font-medium">Material</th>
                 <th class="p-2 pr-2 font-medium">Type</th>
                 <th class="p-2 pr-2 font-medium">Amount</th>
-                <th class="p-2 pr-2 font-medium">% material</th>
-                <th class="p-2 pr-2 font-medium">% material (undiluted)</th>
-                <th class="p-2 pr-2 font-medium">% material total</th>
+                <th class="p-2 pr-2 font-medium">Material %</th>
+                <th class="p-2 pr-2 font-medium">Material % undiluted</th>
+                <th class="p-2 pr-2 font-medium">Parts / 1000</th>
                 <th class="p-2 pr-2 font-medium">% total</th>
               </tr>
             </thead>
@@ -221,7 +252,7 @@
 
             <tbody>
               {#each formula.materials as material}
-                <tr class="border">
+                <tr class="border tabular-nums">
                   <td class="p-2 pr-2">{materials.get(material.material_id)?.name}</td>
                   <td class="p-2 pr-2">{materials.get(material.material_id)?.type}</td>
 
@@ -234,19 +265,19 @@
                   <!-- % MATERIAL -->
 
                   <td class="p-2 pr-2">
-                    {pf.format(concentration(material))}
-                  </td>
-
-                  <!-- % MATERIAL ABSOLUTE -->
-
-                  <td class="p-2 pr-2">
                     {pf.format(concentrationMaterial(material))}
                   </td>
 
-                  <!-- % MATERIAL TOTAL -->
+                  <!-- % MATERIAL UNDILUTED -->
 
                   <td class="p-2 pr-2">
                     {pf.format(concentrationTotal(material))}
+                  </td>
+
+                  <!-- PPT -->
+
+                  <td class="p-2 pr-2">
+                    {(concentrationTotal(material) * 1000).toFixed(0)}
                   </td>
 
                   <!-- % TOTAL -->
@@ -259,21 +290,30 @@
 
               <!-- SOLVENT -->
 
-              <tr class="border-b text-muted-foreground">
+              <tr class="border-b text-muted-foreground tabular-nums">
                 <td class="p-2">Solvent</td>
 
                 <td class="p-2">-</td>
 
-                <td class="p-2">{gf.format(formula.grams_total - materialMass)}</td>
+                <td class="p-2">{gf.format(formula.grams_total - materialMassAbsolute)}</td>
 
                 <td class="p-2">-</td>
 
                 <td class="p-2">-</td>
 
-                <td class="p-2">-</td>
+                <!-- PPT -->
+
+                <td class="p-2">
+                  {(
+                    ((formula.grams_total - materialMassDiluted) / formula.grams_total) *
+                    1000
+                  ).toFixed(0)}
+                </td>
 
                 <td class="p-2"
-                  >{pf.format((formula.grams_total - materialMass) / formula.grams_total)}</td
+                  >{pf.format(
+                    (formula.grams_total - materialMassAbsolute) / formula.grams_total
+                  )}</td
                 >
               </tr>
             </tbody>
@@ -281,7 +321,7 @@
             <!-- FOOTER -->
 
             <tfoot>
-              <tr class="p-2 font-bold">
+              <tr class="p-2 font-bold tabular-nums">
                 <td class="p-2 pr-2">Total</td>
 
                 <td class="p-2 pr-2">-</td>
@@ -292,9 +332,9 @@
 
                 <td class="p-2 pr-2">-</td>
 
-                <td class="p-2 pr-2">-</td>
-
                 <td class="p-2 pr-2">{pf.format(concentrationMaterialAbsolute)}</td>
+
+                <td class="p-2 pr-2">-</td>
 
                 <td class="p-2 pr-2">{pf.format(1)}</td>
               </tr>

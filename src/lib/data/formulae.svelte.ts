@@ -70,9 +70,9 @@ export async function insertFormula(state: FormulaBuilder): Promise<Formula<type
   const formula = await getFormula(formulaId!!);
 
   if (formula.type === 'DRAFT') {
-    formulae.drafts.push(formula as Formula<'DRAFT'>);
+    formulae.drafts.unshift(formula as Formula<'DRAFT'>);
   } else if (formula.type === 'MIXTURE') {
-    formulae.formulae.push(formula as Formula<'MIXTURE'>);
+    formulae.formulae.unshift(formula as Formula<'MIXTURE'>);
   }
 
   if (state.type === 'MIXTURE') {
@@ -108,9 +108,9 @@ export async function cloneFormulaDraft(original: Formula<'DRAFT'>) {
   const formula = await getFormula(formulaId!!);
 
   if (formula.type === 'DRAFT') {
-    formulae.drafts.push(formula as Formula<'DRAFT'>);
+    formulae.drafts.unshift(formula as Formula<'DRAFT'>);
   } else if (formula.type === 'MIXTURE') {
-    formulae.formulae.push(formula as Formula<'MIXTURE'>);
+    formulae.formulae.unshift(formula as Formula<'MIXTURE'>);
   }
 
   return formula;
@@ -147,11 +147,7 @@ export async function spendFormulaDraft(draft: Formula<'DRAFT'>) {
     })
   );
 
-  if (formula.type === 'DRAFT') {
-    formulae.drafts.push(formula as Formula<'DRAFT'>);
-  } else if (formula.type === 'MIXTURE') {
-    formulae.formulae.push(formula as Formula<'MIXTURE'>);
-  }
+  formulae.formulae.unshift(formula as Formula<'MIXTURE'>);
 
   return formula;
 }

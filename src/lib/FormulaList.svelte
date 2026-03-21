@@ -21,19 +21,23 @@
 
 <ul class="divide-y">
   {#if display === 'MIXTURE'}
-    {#each formulae.formulae as _, i}
-      <FormulaListItem bind:formula={formulae.formulae[i]} />
+    {#each formulae.formulae as formula, i}
+      {#key formula.id}
+        <FormulaListItem bind:formula={formulae.formulae[i]} />
+      {/key}
     {/each}
   {/if}
 
   {#if display === 'DRAFT'}
-    {#each formulae.drafts as _, i}
-      <FormulaListItem
-        bind:formula={formulae.drafts[i]}
-        onDraftSpend={() => {
-          onSelect('MIXTURE');
-        }}
-      />
+    {#each formulae.drafts as formula, i}
+      {#key formula.id}
+        <FormulaListItem
+          bind:formula={formulae.drafts[i]}
+          onDraftSpend={() => {
+            onSelect('MIXTURE');
+          }}
+        />
+      {/key}
     {/each}
   {/if}
 </ul>

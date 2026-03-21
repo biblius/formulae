@@ -131,8 +131,8 @@ export type FormulaBuilder = {
   type: FormulaType;
   description?: string;
   materials: MaterialSpend[];
-  solventGrams: number;
   targetGrams: number;
+  useSolvent: boolean;
 
   reset: () => void;
 };

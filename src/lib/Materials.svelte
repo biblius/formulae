@@ -158,8 +158,10 @@
 
   {#if display === 'full'}
     <ul class="w-full">
-      {#each displayAbstract as _, i}
-        <MaterialListItem material={displayAbstract[i]} />
+      {#each displayAbstract as material, i}
+        {#key material.id}
+          <MaterialListItem material={displayAbstract[i]} />
+        {/key}
       {/each}
     </ul>
   {/if}

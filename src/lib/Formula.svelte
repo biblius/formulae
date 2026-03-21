@@ -22,6 +22,7 @@
 
   async function saveFormula(formula: FormulaBuilderState) {
     if (formula.materials.length === 0) {
+      console.error('no materials');
       return;
     }
 
@@ -30,6 +31,15 @@
         console.error('insufficient material');
         return;
       }
+
+      if (material.grams <= 0) {
+        console.error('material cannot be 0 or less!');
+        return;
+      }
+    }
+
+    if (!formula.useSolvent) {
+      formula.targetGrams = formula.materials.reduce((acc, m) => acc + m.grams, 0);
     }
 
     await insertFormula(formula);

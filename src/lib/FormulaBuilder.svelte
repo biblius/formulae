@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Checkbox } from '$lib/components/ui/checkbox/index.js';
   import * as Select from './components/ui/select';
   import { Button } from '$lib/components/ui/button';
   import { materials } from '$lib/data/materials.svelte';
@@ -13,17 +14,16 @@
   let searching = $state('');
 
   let {
-    formula = $bindable({
+    formula = $bindable<FormulaBuilder>({
       name: '',
       type: 'DRAFT',
       materials: [],
-      solventGrams: 0,
       targetGrams: 100,
+      useSolvent: true,
 
       reset() {
         this.name = '';
         this.materials = [];
-        this.solventGrams = 0;
         this.targetGrams = 100;
         this.type = 'DRAFT';
       }
@@ -38,19 +38,24 @@
     editing?: boolean;
   }>();
 
-  // let formula: FormulaBuilder = $state();
+  let totalInvalid = $state(false);
+
+  // type MaterialFilterConfig = {
+  //   sort
+  // };
+  // let materialFilterConfig = $state({})
 
   /**
    * Absolute mass of material before dilution
    */
-  let materialMass = $derived(
+  let materialMassAbsolute = $derived(
     formula.materials.reduce((acc: number, material: MaterialSpend) => acc + material.grams, 0)
   );
 
   /**
    * Absolute mass of material after dilution
    */
-  let materialMassAbsolute = $derived(
+  let materialMassDiluted = $derived(
     formula.materials.reduce((acc: number, material: MaterialSpend) => {
       if (material.original.grams_material != null && material.original.grams_solvent != null) {
         const ratio =
@@ -63,9 +68,14 @@
   );
 
   /**
+   * Either the formula target grams if using solvent or the diluted material absolute mass if not.
+   */
+  let targetMass = $derived(formula.useSolvent ? formula.targetGrams : materialMassAbsolute);
+
+  /**
    * % of material after dilution
    */
-  let concentrationMaterialAbsolute = $derived(materialMassAbsolute / formula.targetGrams);
+  let concentrationMaterialAbsolute = $derived(materialMassDiluted / targetMass);
 
   let saveEnabled = $derived(
     formula.name &&
@@ -78,6 +88,15 @@
       original: material,
       grams: 0
     });
+  }
+
+  function hasMaterial(material: Material) {
+    for (const m of formula.materials) {
+      if (m.original.id === material.id) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function handleMaterialInput(target: HTMLInputElement, material: MaterialSpend) {
@@ -106,25 +125,10 @@
     if (original.grams_material != null && original.grams_solvent != null) {
       let concentration =
         original.grams_material / (original.grams_material + original.grams_solvent);
-      return (material.grams * concentration) / formula.targetGrams;
+      return (material.grams * concentration) / targetMass;
     }
 
-    return material.grams / formula.targetGrams;
-  }
-
-  /**
-   * Concentration of material in material mass, after dilution
-   */
-  function concentrationMaterial(material: MaterialSpend) {
-    const original = material.original;
-
-    if (original.grams_material != null && original.grams_solvent != null) {
-      let concentration =
-        original.grams_material / (original.grams_material + original.grams_solvent);
-      return (material.grams * concentration) / materialMassAbsolute;
-    }
-
-    return material.grams / materialMassAbsolute;
+    return material.grams / targetMass;
   }
 </script>
 
@@ -142,119 +146,61 @@
       <Textarea rows={4} bind:value={formula.description} placeholder="Description" />
     </div>
   </div>
-
-  <div class="flex w-1/2 justify-center gap-4">
-    <!-- ADD MATERIAL -->
-
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger class="relative max-w-lg">
-        <Button size="icon-sm" variant="outline">
-          <Plus />
-        </Button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Content
-        class="min-h-0 overflow-y-scroll not-sm:max-h-80 sm:max-h-56 sm:max-w-60 sm:wrap-anywhere"
-      >
-        <div class="p-2">
-          <Input
-            type="search"
-            placeholder="Search inventory"
-            bind:value={searching}
-            onselect={(e) => e.preventDefault()}
-          />
-        </div>
-        {#each materialsDisplay() as material}
-          <DropdownMenu.Item
-            onclick={() => addToFormula(material)}
-            disabled={material.grams_available <= 0 && formula.type === 'MIXTURE'}
-            class="flex"
-          >
-            <p class="flex-1">{material.name}</p>
-            <p>
-              {gf.format(material.grams_available)}
-            </p>
-          </DropdownMenu.Item>
-        {/each}
-      </DropdownMenu.Content>
-    </DropdownMenu.Root>
-
-    <Select.Root disabled={editing} type="single" bind:value={formula.type}>
-      <Select.Trigger class="w-fit">
-        {formula.type === 'MIXTURE' ? 'Mixture' : 'Draft'}
-      </Select.Trigger>
-      <Select.Content>
-        <Select.Item value="MIXTURE">Mixture</Select.Item>
-        <Select.Item value="DRAFT">Draft</Select.Item>
-      </Select.Content>
-    </Select.Root>
-
-    <div class="flex items-center">
-      <p class=" w-fit pr-2 text-center text-xs">Total (g)</p>
-      <Input type="number" step="1" class="w-20" bind:value={formula.targetGrams}></Input>
-    </div>
-
-    <div class="flex items-center gap-1 not-sm:w-full not-sm:flex-wrap">
-      <Button
-        class="not-sm:hidden"
-        size="icon-sm"
-        variant="ghost"
-        onclick={() => {
-          formula.targetGrams /= 10;
-        }}>/10</Button
-      >
-      <Button
-        class="not-sm:hidden"
-        size="icon-sm"
-        variant="ghost"
-        onclick={() => {
-          formula.targetGrams *= 10;
-        }}>*10</Button
-      >
-    </div>
-  </div>
 </div>
 
-<table class="mx-auto w-2/3 border-collapse md:table-fixed">
+<h3
+  class="pointer-events-none mx-auto mt-12 w-2/3 border-b border-muted-foreground text-sm text-muted-foreground"
+>
+  Formula
+</h3>
+
+<table class="mx-auto my-6 w-2/3 border-collapse md:table-fixed">
   <!-- HEADER ROW -->
 
   <thead class="p-2">
     <tr>
+      <th class="w-1/8 border p-2 text-center"></th>
       <th class="w-1/4 border p-2 text-center">Material</th>
-      <th class="w-1/4 border p-2 text-center">Amount</th>
-      <th class="w-1/4 border p-2 text-center">% material</th>
-      <th class="w-1/4 border p-2 text-center">% material (undiluted)</th>
-      <th class="w-1/4 border p-2 text-center">% material total</th>
+      <th class="w-1/4 border p-2 text-center">Amount (g)</th>
+      <th class="w-1/4 border p-2 text-center">Amount (%)</th>
+      <th class="w-1/4 border p-2 text-center">Amount (PPT)</th>
       <th class="w-1/4 border p-2 text-center">% total</th>
     </tr>
   </thead>
 
-  <tbody>
+  <tbody class="tabular-nums">
     <!-- MATERIAL ROWS -->
 
     {#each formula.materials as material}
       <tr class="relative">
+        <!-- ACTIONS -->
+
         <td class="border p-2 text-center">
-          <div class="flex w-fit items-center justify-start">
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              class="hover:text-destructive"
-              onclick={() => {
-                formula.materials = formula.materials.filter(
-                  (m: MaterialSpend) => m.original.id !== material.original.id
-                );
-              }}><X /></Button
-            >
-            <p>
-              {material.original.name}
-            </p>
-          </div>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            class="hover:text-destructive"
+            onclick={() => {
+              formula.materials = formula.materials.filter(
+                (m: MaterialSpend) => m.original.id !== material.original.id
+              );
+            }}><X /></Button
+          >
         </td>
+
+        <!-- MATERIAL NAME -->
+
+        <td class="border p-2 text-center">
+          <p>
+            {material.original.name}
+          </p>
+        </td>
+
+        <!-- MATERIAL AMOUNT (G) -->
+
         <td class="border p-2 text-center">
           <Input
-            class={exceeded.includes(material.original.id) && formula.type === 'MIXTURE'
-              ? 'mx-auto w-20 border-destructive bg-destructive/5 focus-visible:border-destructive focus-visible:ring-destructive'
-              : 'mx-auto w-20'}
+            class="mx-auto w-20"
             oninput={(e) => {
               handleMaterialInput(e.target as HTMLInputElement, material);
             }}
@@ -271,72 +217,185 @@
           {/if}
         </td>
 
-        <!-- % MATERIAL -->
+        <!-- MATERIAL % -->
 
         <td class="border p-2 text-center">
-          {#if materialMass !== 0}
-            {pf.format(material.grams / materialMass)}
-          {:else}
-            {pf.format(0)}
-          {/if}
-        </td>
-
-        <!-- % MATERIAL UNDILUTED -->
-
-        <td class="border p-2 text-center">
-          {#if materialMass !== 0}
-            {pf.format(concentrationMaterial(material))}
-          {:else}
-            {pf.format(0)}
-          {/if}
-        </td>
-
-        <!-- % MATERIAL TOTAL -->
-
-        <td class="border p-2 text-center">
-          {#if materialMass !== 0}
+          {#if materialMassAbsolute !== 0}
             {pf.format(concentrationTotal(material))}
           {:else}
             {pf.format(0)}
           {/if}
         </td>
 
-        <td class="border p-2 text-center">{pf.format(material.grams / formula.targetGrams)}</td>
+        <!-- PPT -->
+
+        <td class="border p-2 text-center">
+          {#if materialMassAbsolute !== 0}
+            {(concentrationTotal(material) * 1000).toFixed(0)}
+          {:else}
+            {pf.format(0)}
+          {/if}
+        </td>
+
+        <td class="border p-2 text-center">{pf.format(material.grams / targetMass)}</td>
       </tr>
     {/each}
 
     <!-- SOLVENT ROW -->
 
-    <tr class="text-muted-foreground">
-      <td class="border p-2 text-center">Solvent</td>
-      <td class="border p-2 text-center">{gf.format(formula.targetGrams - materialMass)}</td>
-      <td class="border p-2 text-center">-</td>
-      <td class="border p-2 text-center">-</td>
-      <td class="border p-2 text-center">-</td>
-      <td class="border p-2 text-center"
-        >{pf.format((formula.targetGrams - materialMass) / formula.targetGrams)}</td
-      >
+    <tr class="text-muted-foreground tabular-nums">
+      <!-- ACTION -->
+
+      <td class="border p-2 text-foreground">
+        <Checkbox class="mx-auto text-foreground" bind:checked={formula.useSolvent} />
+      </td>
+
+      <!-- NAME -->
+
+      <td class="border p-2 text-center"> Solvent </td>
+
+      <!-- AMOUNT (G) -->
+
+      <td class="border p-2 text-center">
+        {#if formula.useSolvent}
+          {gf.format(formula.targetGrams - materialMassAbsolute)}
+        {:else}
+          -
+        {/if}
+      </td>
+
+      <!-- MATERIAL % -->
+
+      <td class="border p-2 text-center">
+        {pf.format((targetMass - materialMassDiluted) / targetMass)}
+      </td>
+
+      <!-- PPT -->
+
+      <td class="border p-2 text-center">
+        {(((targetMass - materialMassDiluted) / targetMass) * 1000).toFixed(0)}
+      </td>
+
+      <!-- TOTAL -->
+
+      <td class="border p-2 text-center">
+        {pf.format((targetMass - materialMassAbsolute) / targetMass)}
+      </td>
     </tr>
 
     <!-- TOTAL ROW -->
 
-    <tr>
+    <tr class="tabular-nums">
       <td class="border p-2 text-center font-bold">Total</td>
 
-      <td class="border p-2 text-center font-bold">{gf.format(formula.targetGrams)}</td>
+      <td class="border p-2 text-center font-bold">
+        {formula.materials.length}
+        {#if formula.materials.length === 1}
+          material
+        {:else}
+          materials
+        {/if}
+      </td>
 
-      <td class="border p-2 text-center font-bold"> - </td>
-
-      <td class="border p-2 text-center font-bold"> - </td>
+      <td class="border p-2 text-center font-bold">
+        {#if formula.useSolvent}
+          <Input
+            type="number"
+            step="1"
+            min={materialMassAbsolute}
+            class="mx-auto w-20"
+            bind:value={formula.targetGrams}
+            onbeforeinput={(e) => {
+              if (e.data === null || e.data === '.') {
+                return;
+              }
+              const value = parseInt(e.data);
+              if (isNaN(value)) {
+                e.preventDefault();
+                return;
+              }
+            }}
+            oninput={() => {
+              if (materialMassAbsolute > formula.targetGrams && formula.useSolvent) {
+                totalInvalid = true;
+              } else {
+                totalInvalid = false;
+              }
+            }}
+          ></Input>
+          {#if totalInvalid}
+            <div class="mt-1 flex items-center justify-center gap-2 text-xs text-destructive">
+              <Info class="h-4 w-4" />
+              <span>Total cannot be less than material total</span>
+            </div>
+          {/if}
+        {:else}
+          <p>{materialMassAbsolute.toFixed(2)}</p>
+        {/if}
+      </td>
 
       <td class="border p-2 text-center font-bold">
         {pf.format(concentrationMaterialAbsolute)}
       </td>
 
+      <td class="border p-2 text-center font-bold text-muted-foreground"> 1000 </td>
+
       <td class="border p-2 text-center font-bold">{pf.format(1)}</td>
     </tr>
   </tbody>
 </table>
+
+<h3
+  class="pointer-events-none mx-auto mt-12 w-2/3 border-b border-muted-foreground text-sm text-muted-foreground"
+>
+  Add materials
+</h3>
+
+<div class="mx-auto my-8 w-2/3">
+  <Input type="search" placeholder="Search inventory" class="my-2" bind:value={searching} />
+  <div class="relative max-h-100 overflow-scroll">
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+
+    <table class="mx-auto w-full border-collapse border border-red-900 md:table-fixed">
+      <thead class="sticky top-0 z-10 border bg-muted p-2">
+        <tr>
+          <th class="sticky z-10 w-1/4 border bg-muted p-2 text-center">Material</th>
+          <th class="sticky z-10 w-1/4 border bg-muted p-2 text-center">Available (g)</th>
+          <th class="sticky z-10 w-1/8 border bg-muted p-2 text-center">Add</th>
+        </tr>
+      </thead>
+
+      <tbody class="tabular-nums">
+        {#each materialsDisplay() as material}
+          <!-- MATERIAL ROWS -->
+
+          <tr class:text-muted-foreground={hasMaterial(material)} class="relative">
+            <td class="w-1/4 border p-2 text-center wrap-anywhere">
+              {material.name}
+            </td>
+
+            <td class="w-1/4 border p-2 text-center">
+              {gf.format(material.grams_available)}
+            </td>
+            <!-- ACTIONS -->
+
+            <td class="w-1/8 border p-2 text-center">
+              <Button
+                variant="ghost"
+                disabled={hasMaterial(material)}
+                onclick={() => addToFormula(material)}
+              >
+                <Plus /></Button
+              >
+            </td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
+</div>
 
 <div class="flex w-full justify-center gap-2 p-4">
   <Button variant="destructive" onclick={() => onCancel()}>Cancel</Button>
