@@ -176,21 +176,19 @@
     onclick={() => toggleOpen()}
   >
     <div class="flex w-full items-center justify-between gap-2">
-      <div>
+      <div class="w-2/3">
         <div class="font-medium">{formula.name}</div>
-        <div class="text-sm whitespace-nowrap text-muted-foreground">
-          {#if formula.description}
-            <div class="text-sm text-muted-foreground">
-              {formula.description}
-            </div>
-          {/if}
-        </div>
+        {#if formula.description}
+          <div class="text-sm text-muted-foreground">
+            {formula.description}
+          </div>
+        {/if}
       </div>
-      <div class="text-muted-foreground">
-        <p>
+      <div class="flex w-1/3 flex-wrap text-end text-sm text-muted-foreground">
+        <p class="w-full">
           {df.format(new Date(formula.created_at))}
         </p>
-        <p>
+        <p class="w-full">
           {formula.grams_total} g ({formula.materials.length} materials)
         </p>
       </div>
@@ -240,17 +238,16 @@
               <tr class="border text-muted-foreground">
                 <th class="p-2 pr-2 font-medium">Material</th>
                 <th class="p-2 pr-2 font-medium">Type</th>
-                <th class="p-2 pr-2 font-medium">Amount</th>
-                <th class="p-2 pr-2 font-medium">Material %</th>
-                <th class="p-2 pr-2 font-medium">Material % undiluted</th>
-                <th class="p-2 pr-2 font-medium">Parts / 1000</th>
+                <th class="p-2 pr-2 font-medium">Amount (g)</th>
+                <th class="p-2 pr-2 font-medium">Amount (%)</th>
+                <th class="p-2 pr-2 font-medium">Amount (PPT)</th>
                 <th class="p-2 pr-2 font-medium">% total</th>
               </tr>
             </thead>
 
             <!-- BODY -->
 
-            <tbody>
+            <tbody class="tabular-nums">
               {#each formula.materials as material}
                 <tr class="border tabular-nums">
                   <td class="p-2 pr-2">{materials.get(material.material_id)?.name}</td>
@@ -262,13 +259,7 @@
                     {gf.format(material.grams)}
                   </td>
 
-                  <!-- % MATERIAL -->
-
-                  <td class="p-2 pr-2">
-                    {pf.format(concentrationMaterial(material))}
-                  </td>
-
-                  <!-- % MATERIAL UNDILUTED -->
+                  <!-- MATERIAL % -->
 
                   <td class="p-2 pr-2">
                     {pf.format(concentrationTotal(material))}
@@ -297,9 +288,11 @@
 
                 <td class="p-2">{gf.format(formula.grams_total - materialMassAbsolute)}</td>
 
-                <td class="p-2">-</td>
+                <!-- MATERIAL % -->
 
-                <td class="p-2">-</td>
+                <td class="p-2">
+                  {pf.format((formula.grams_total - materialMassDiluted) / formula.grams_total)}
+                </td>
 
                 <!-- PPT -->
 
@@ -321,22 +314,20 @@
             <!-- FOOTER -->
 
             <tfoot>
-              <tr class="p-2 font-bold tabular-nums">
-                <td class="p-2 pr-2">Total</td>
+              <tr class="p-2 tabular-nums">
+                <td class="p-2 pr-2">Total ({formula.materials.length} materials)</td>
 
-                <td class="p-2 pr-2">-</td>
+                <td class="p-2 pr-2 text-muted-foreground">-</td>
 
-                <td class="p-2 pr-2 tabular-nums">
+                <td class="p-2 pr-2 font-bold tabular-nums">
                   {gf.format(formula.grams_total)}
                 </td>
 
-                <td class="p-2 pr-2">-</td>
+                <td class="p-2 pr-2 font-bold">{pf.format(concentrationMaterialAbsolute)}</td>
 
-                <td class="p-2 pr-2">{pf.format(concentrationMaterialAbsolute)}</td>
+                <td class="p-2 pr-2 text-muted-foreground">1000</td>
 
-                <td class="p-2 pr-2">-</td>
-
-                <td class="p-2 pr-2">{pf.format(1)}</td>
+                <td class="p-2 pr-2 text-muted-foreground">{pf.format(1)}</td>
               </tr>
             </tfoot>
           </table>
