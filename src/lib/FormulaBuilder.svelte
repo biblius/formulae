@@ -32,8 +32,6 @@
     onCancel: () => void;
   }>();
 
-  let totalInvalid = $state(false);
-
   // type MaterialFilterConfig = {
   //   sort
   // };

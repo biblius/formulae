@@ -51,6 +51,10 @@ export type MaterialState = {
    * Return all material definitions.
    */
   definitions: () => MaterialAbstract[];
+
+  definitionTotal: () => number;
+
+  inventoryTotal: () => number;
 };
 
 type MaterialIndices = {
@@ -111,6 +115,14 @@ export let materials: MaterialState = $state<MaterialState>({
     const out = Object.values(indices.abstract);
     out.sort((a, b) => b.id - a.id);
     return out;
+  },
+
+  definitionTotal() {
+    return Object.keys(indices.abstract).length;
+  },
+
+  inventoryTotal() {
+    return Object.keys(indices.inventory).length;
   }
 });
 

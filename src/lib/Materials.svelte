@@ -8,7 +8,7 @@
   import type { MaterialAbstract, MaterialAbstractBuilder } from './types';
   import MaterialAbstractManage from './MaterialAbstractManage.svelte';
   import MaterialHistory from './MaterialHistory.svelte';
-  import { insertMaterialAbstract, type HistoryEntry } from './data/materials.svelte';
+  import { insertMaterialAbstract, materials, type HistoryEntry } from './data/materials.svelte';
   import MaterialInventoryTable from './MaterialInventoryTable.svelte';
 
   let {
@@ -128,7 +128,10 @@
       >
     </div>
 
-    <div class="flex w-full justify-end">
+    <div class="flex w-full items-center justify-end gap-2">
+      <p class="text-muted-foreground">
+        {materials.definitionTotal()} materials ({materials.inventoryTotal()} in inventory)
+      </p>
       <Select.Root
         type="single"
         bind:value={display}
