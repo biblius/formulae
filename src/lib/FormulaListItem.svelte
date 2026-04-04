@@ -72,13 +72,13 @@
 
   async function toggleOpen() {
     open = !open;
-    if (open) {
-      await tick(); // wait for expanded DOM
-      document.getElementById(`formula-${formula.id}`)?.scrollIntoView({
-        behavior: 'instant',
-        block: 'start'
-      });
-    }
+    // if (open) {
+    // await tick(); // wait for expanded DOM
+    // document.getElementById(`formula-${formula.id}`)?.scrollIntoView({
+    //   behavior: 'instant',
+    //   block: 'start'
+    // });
+    // }
   }
 
   function startAddNote() {
@@ -145,9 +145,7 @@
         grams: m.grams
       };
     }),
-    targetGrams: formula.grams_total,
-    useSolvent: formula.grams_total !== formula.materials.reduce((acc, m) => acc + m.grams, 0),
-
+    solvent: formula.grams_total - formula.materials.reduce((acc, m) => acc + m.grams, 0),
     reset() {
       this.name = formula.name;
       this.type = formula.type;
@@ -158,9 +156,7 @@
           grams: m.grams
         };
       });
-      this.targetGrams = formula.grams_total;
-      this.useSolvent =
-        formula.grams_total !== formula.materials.reduce((acc, m) => acc + m.grams, 0);
+      this.solvent = formula.grams_total - formula.materials.reduce((acc, m) => acc + m.grams, 0);
     }
   });
 </script>
@@ -212,10 +208,6 @@
             }
           }
 
-          if (!f.useSolvent) {
-            f.targetGrams = formula.materials.reduce((acc, m) => acc + m.grams, 0);
-          }
-
           await updateFormula(formula.id, f);
 
           f.reset();
@@ -226,7 +218,6 @@
           editing = false;
           builder.reset();
         }}
-        editing={true}
       />
     {:else}
       <div class="bg-muted/75 p-4">

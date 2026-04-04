@@ -48,6 +48,9 @@ export async function initFormulae() {
 
 export async function insertFormula(state: FormulaBuilder): Promise<Formula<typeof state.type>> {
   const _db = await db();
+
+  const grams_total = state.solvent + state.materials.reduce((acc, m) => acc + m.grams, 0);
+
   const { lastInsertId: formulaId } = await _db.execute(
     `
       INSERT INTO formulae(
@@ -58,7 +61,7 @@ export async function insertFormula(state: FormulaBuilder): Promise<Formula<type
       ) 
       VALUES($1, $2, $3, $4)
       `,
-    [state.name, state.type, state.description, state.targetGrams]
+    [state.name, state.type, state.description, grams_total]
   );
 
   await insertValues(
@@ -94,7 +97,7 @@ export async function cloneFormulaDraft(original: Formula<'DRAFT'>) {
       ) 
       VALUES($1, $2, $3, $4)
       `,
-    [`Copy of ${original.name}`, original.type, original.description, original.grams_total]
+    [`${original.name} Copy`, original.type, original.description, original.grams_total]
   );
 
   if (original.materials.length > 0) {
@@ -159,6 +162,8 @@ export async function updateFormula(id: number, state: FormulaBuilder) {
   }
   const _db = await db();
 
+  const grams_total = state.solvent + state.materials.reduce((acc, m) => acc + m.grams, 0);
+
   await _db.execute(
     `
       UPDATE formulae SET
@@ -168,7 +173,7 @@ export async function updateFormula(id: number, state: FormulaBuilder) {
         grams_total = $4
       WHERE id = $5
       `,
-    [state.name, state.type, state.description, state.targetGrams, id]
+    [state.name, state.type, state.description, grams_total, id]
   );
 
   await _db.execute(`DELETE FROM formula_materials WHERE formula_id = $1`, [id]);

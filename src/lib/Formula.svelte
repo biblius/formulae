@@ -38,10 +38,6 @@
       }
     }
 
-    if (!formula.useSolvent) {
-      formula.targetGrams = formula.materials.reduce((acc, m) => acc + m.grams, 0);
-    }
-
     await insertFormula(formula);
 
     selectDisplay(formula.type);
