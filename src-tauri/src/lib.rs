@@ -46,6 +46,13 @@ pub fn run() {
             sql: include_str!("../../migrations/20260321090015_formula_materials_type.up.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 7,
+            description: "Remove FK constraint from formula materials",
+
+            sql: include_str!("../../migrations/20260405165519_formula_materials_remove_fk.up.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

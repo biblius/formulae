@@ -3,8 +3,6 @@ import Database, { type QueryResult } from '@tauri-apps/plugin-sql';
 let dbInner: Database | null = null;
 let initPromise: Promise<Database> | null = null;
 
-export type InsertValue = boolean | number | string;
-
 export function db(): Promise<Database> {
   if (dbInner) return Promise.resolve(dbInner);
 
@@ -21,7 +19,7 @@ export function db(): Promise<Database> {
 export async function insertValues(
   table: string,
   columns: string[],
-  values: InsertValue[][]
+  values: any[][]
 ): Promise<QueryResult> {
   let vals = '';
 

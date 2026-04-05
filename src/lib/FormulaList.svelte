@@ -1,11 +1,11 @@
 <script lang="ts">
   import { Button } from '$lib/components/ui/button';
-  import { formulae, type FormulaType } from './data/formulae.svelte';
+  import { formulae } from './data/formulae.svelte';
   import FormulaListItem from './FormulaListItem.svelte';
 
   let { display, onSelect } = $props<{
-    display: FormulaType;
-    onSelect: (display: FormulaType) => void;
+    display: string;
+    onSelect: (display: string) => void;
   }>();
 </script>
 
@@ -21,23 +21,19 @@
 
 <ul class="divide-y">
   {#if display === 'MIXTURE'}
-    {#each formulae.formulae as formula, i}
-      {#key formula.id}
-        <FormulaListItem bind:formula={formulae.formulae[i]} />
-      {/key}
+    {#each formulae.formulae as formula, i (formula.id)}
+      <FormulaListItem bind:formula={formulae.formulae[i]} />
     {/each}
   {/if}
 
   {#if display === 'DRAFT'}
-    {#each formulae.drafts as formula, i}
-      {#key formula.id}
-        <FormulaListItem
-          bind:formula={formulae.drafts[i]}
-          onDraftSpend={() => {
-            onSelect('MIXTURE');
-          }}
-        />
-      {/key}
+    {#each formulae.drafts as formula, i (formula.id)}
+      <FormulaListItem
+        bind:formula={formulae.drafts[i]}
+        onDraftSpend={() => {
+          onSelect('MIXTURE');
+        }}
+      />
     {/each}
   {/if}
 </ul>

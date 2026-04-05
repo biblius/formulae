@@ -5,17 +5,15 @@
   import type { HistoryEntry } from './data/materials.svelte';
   import { ChevronDown, ChevronRight, Plus } from '@lucide/svelte';
   import type { FormulaBuilder as FormulaBuilderState } from './types';
-  import { insertFormula, type FormulaType } from './data/formulae.svelte';
+  import { insertFormulaDraft } from './data/formulae.svelte';
   import Button from './components/ui/button/button.svelte';
 
   let showHistory = $state(false);
   let { history }: { history: HistoryEntry<'FORMULA'>[] } = $props();
 
-  let display: FormulaType = $state(
-    (localStorage.getItem('lastFormulaDisplay') as FormulaType | undefined) ?? 'DRAFT'
-  );
+  let display = $state((localStorage.getItem('lastFormulaDisplay') || undefined) ?? 'DRAFT');
 
-  function selectDisplay(value: FormulaType) {
+  function selectDisplay(value: string) {
     localStorage.setItem('lastFormulaDisplay', value);
     display = value;
   }
@@ -27,20 +25,13 @@
     }
 
     for (const material of formula.materials) {
-      if (material.grams > material.original.grams_available && formula.type === 'MIXTURE') {
-        console.error('insufficient material');
-        return;
-      }
-
       if (material.grams <= 0) {
         console.error('material cannot be 0 or less!');
         return;
       }
     }
 
-    await insertFormula(formula);
-
-    selectDisplay(formula.type);
+    await insertFormulaDraft(formula);
 
     formula.reset();
 
@@ -65,9 +56,9 @@
 
   {#if adding}
     <FormulaBuilder onSave={saveFormula} onCancel={() => (adding = false)} />
-  {:else}
-    <FormulaList {display} onSelect={(v) => selectDisplay(v)} />
   {/if}
+
+  <FormulaList {display} onSelect={(v) => selectDisplay(v)} />
 
   <!-- HISTORY -->
 

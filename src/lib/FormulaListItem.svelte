@@ -1,21 +1,22 @@
 <script lang="ts">
   import * as Dialog from './components/ui/dialog';
-  import { BottleWine, Check, Copy, FlaskRound, SquarePen, Trash, Undo, X } from '@lucide/svelte';
+  import { Check, Copy, FlaskRound, SquarePen, Trash, Undo, X } from '@lucide/svelte';
   import { Button, buttonVariants } from '$lib/components/ui/button';
   import {
+    calculateFormula,
     cloneFormulaDraft,
     deleteFormula,
+    formulae,
     insertFormulaNote,
     spendFormulaDraft,
+    toBuilder,
     undoFormula,
-    updateFormula,
-    type FormulaType
+    updateFormula
   } from './data/formulae.svelte';
   import { materials } from './data/materials.svelte';
   import { df, gf, pf } from './utils';
   import FormulaNote from './FormulaNote.svelte';
   import type { FormulaBuilder as FormulaBuilderState, Formula, FormulaMaterial } from './types';
-  import { onMount, tick } from 'svelte';
   import Textarea from './components/Textarea.svelte';
   import FormulaBuilder from './FormulaBuilder.svelte';
 
@@ -30,43 +31,22 @@
   let {
     formula = $bindable(),
     onDraftSpend = () => {}
-  }: { formula: Formula<FormulaType>; onDraftSpend?: () => void } = $props();
+  }: { formula: Formula; onDraftSpend?: () => void } = $props();
 
   let createdAt = $derived(df.format(new Date(formula.created_at)));
 
-  /**
-   * Material mass including solvent, if the material is a dilution.
-   */
-  let materialMassAbsolute = $derived(
-    formula.materials.reduce((acc, material) => acc + material.grams, 0)
-  );
-
-  /**
-   * Pure material mass.
-   */
-  let materialMassDiluted = $derived(
-    formula.materials.reduce((acc, material) => {
-      const original = materials.get(material.material_id);
-
-      if (!original) {
-        return acc;
-      }
-
-      if (original.grams_material != null && original.grams_solvent != null) {
-        const ratio = original.grams_material / (original.grams_material + original.grams_solvent);
-        return acc + material.grams * ratio;
-      }
-
-      return acc + material.grams;
-    }, 0)
-  );
-
-  let concentrationMaterialAbsolute = $derived(materialMassDiluted / formula.grams_total);
-
   let exceeded = $derived(
     formula.materials.filter((material) => {
-      const available = materials.get(material.material_id)!!.grams_available;
-      return material.grams > available;
+      if (material.type === 'MATERIAL') {
+        const available = materials.get(material.material_id)?.grams_available;
+        if (!available) return false;
+        return material.grams > available;
+      }
+      if (material.type === 'MIXTURE') {
+        const available = formulae.get(material.material_id)?.grams_available;
+        if (!available) return false;
+        return material.grams > available;
+      }
     })
   );
 
@@ -100,65 +80,8 @@
     cancelAddNote();
   }
 
-  function concentrationTotal(material: FormulaMaterial): number {
-    const original = materials.get(material.material_id);
-
-    if (!original) {
-      return -1;
-    }
-
-    if (original.grams_material != null && original.grams_solvent != null) {
-      let concentration =
-        original.grams_material / (original.grams_material + original.grams_solvent);
-      return (material.grams * concentration) / formula.grams_total;
-    }
-
-    return material.grams / formula.grams_total;
-  }
-
-  /**
-   * Concentration of material in material mass, after dilution
-   */
-  function concentrationMaterial(material: FormulaMaterial) {
-    const original = materials.get(material.material_id);
-
-    if (!original) {
-      return -1;
-    }
-
-    if (original.grams_material != null && original.grams_solvent != null) {
-      let concentration =
-        original.grams_material / (original.grams_material + original.grams_solvent);
-      return (material.grams * concentration) / materialMassDiluted;
-    }
-
-    return material.grams / materialMassDiluted;
-  }
-
-  let builder = $state<FormulaBuilderState>({
-    name: formula.name,
-    type: formula.type,
-    description: formula.description ?? undefined,
-    materials: formula.materials.map((m) => {
-      return {
-        original: materials.get(m.material_id)!!,
-        grams: m.grams
-      };
-    }),
-    solvent: formula.grams_total - formula.materials.reduce((acc, m) => acc + m.grams, 0),
-    reset() {
-      this.name = formula.name;
-      this.type = formula.type;
-      this.description = formula.description ?? undefined;
-      this.materials = formula.materials.map((m) => {
-        return {
-          original: materials.get(m.material_id)!!,
-          grams: m.grams
-        };
-      });
-      this.solvent = formula.grams_total - formula.materials.reduce((acc, m) => acc + m.grams, 0);
-    }
-  });
+  let builder = $state<FormulaBuilderState>(toBuilder(formula));
+  let result = $derived(calculateFormula(formula));
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -228,44 +151,42 @@
             <thead>
               <tr class="border text-muted-foreground">
                 <th class="p-2 pr-2 font-medium">Material</th>
-                <th class="p-2 pr-2 font-medium">Type</th>
-                <th class="p-2 pr-2 font-medium">Amount (g)</th>
-                <th class="p-2 pr-2 font-medium">Amount (%)</th>
-                <th class="p-2 pr-2 font-medium">Amount (PPT)</th>
-                <th class="p-2 pr-2 font-medium">% total</th>
+                <th class="p-2 pr-2 font-medium">Amount</th>
+                <th class="p-2 pr-2 font-medium">Material g</th>
+                <th class="p-2 pr-2 font-medium">Material %</th>
+                <th class="p-2 pr-2 font-medium">Material PPT</th>
               </tr>
             </thead>
 
             <!-- BODY -->
 
             <tbody class="tabular-nums">
-              {#each formula.materials as material}
+              {#each result.entries as material}
                 <tr class="border tabular-nums">
-                  <td class="p-2 pr-2">{materials.get(material.material_id)?.name}</td>
-                  <td class="p-2 pr-2">{materials.get(material.material_id)?.type}</td>
+                  <td class="p-2 pr-2">{material.name}</td>
 
-                  <!-- GRAMS MATERIAL -->
+                  <!-- AMOUNT -->
 
                   <td class="p-2 pr-2 tabular-nums">
-                    {gf.format(material.grams)}
+                    {gf.format(material.amountGramsFull)}
+                  </td>
+
+                  <!-- MATERIAL G -->
+
+                  <td class="p-2 pr-2">
+                    {gf.format(material.amountGrams)}
                   </td>
 
                   <!-- MATERIAL % -->
 
                   <td class="p-2 pr-2">
-                    {pf.format(concentrationTotal(material))}
+                    {pf.format(material.amountPercent!!)}
                   </td>
 
                   <!-- PPT -->
 
                   <td class="p-2 pr-2">
-                    {(concentrationTotal(material) * 1000).toFixed(0)}
-                  </td>
-
-                  <!-- % TOTAL -->
-
-                  <td class="p-2 pr-2">
-                    {pf.format(material.grams / formula.grams_total)}
+                    {material.amountPPT}
                   </td>
                 </tr>
               {/each}
@@ -275,30 +196,21 @@
               <tr class="border-b text-muted-foreground tabular-nums">
                 <td class="p-2">Solvent</td>
 
-                <td class="p-2">-</td>
+                <td class="p-2">{gf.format(result.addedSolventMass)}</td>
 
-                <td class="p-2">{gf.format(formula.grams_total - materialMassAbsolute)}</td>
+                <td class="p-2">{gf.format(result.materialSolventMass)}</td>
 
                 <!-- MATERIAL % -->
 
                 <td class="p-2">
-                  {pf.format((formula.grams_total - materialMassDiluted) / formula.grams_total)}
+                  {pf.format(result.solventPercent)}
                 </td>
 
                 <!-- PPT -->
 
                 <td class="p-2">
-                  {(
-                    ((formula.grams_total - materialMassDiluted) / formula.grams_total) *
-                    1000
-                  ).toFixed(0)}
+                  {result.solventPPT}
                 </td>
-
-                <td class="p-2"
-                  >{pf.format(
-                    (formula.grams_total - materialMassAbsolute) / formula.grams_total
-                  )}</td
-                >
               </tr>
             </tbody>
 
@@ -306,19 +218,17 @@
 
             <tfoot>
               <tr class="p-2 tabular-nums">
-                <td class="p-2 pr-2">Total ({formula.materials.length} materials)</td>
-
-                <td class="p-2 pr-2 text-muted-foreground">-</td>
+                <td class="p-2 pr-2">Total ({result.totalMaterials} materials)</td>
 
                 <td class="p-2 pr-2 font-bold tabular-nums">
-                  {gf.format(formula.grams_total)}
+                  {gf.format(result.totalMass)}
                 </td>
 
-                <td class="p-2 pr-2 font-bold">{pf.format(concentrationMaterialAbsolute)}</td>
+                <td class="p-2 pr-2 font-bold">{gf.format(result.materialMass)}</td>
+
+                <td class="p-2 pr-2 font-bold">{pf.format(result.materialPercent)}</td>
 
                 <td class="p-2 pr-2 text-muted-foreground">1000</td>
-
-                <td class="p-2 pr-2 text-muted-foreground">{pf.format(1)}</td>
               </tr>
             </tfoot>
           </table>
@@ -378,7 +288,7 @@
                   return;
                 }
 
-                spendFormulaDraft(formula as Formula<'DRAFT'>);
+                spendFormulaDraft(formula);
                 cancelAddNote();
                 builder.reset();
                 open = false;
@@ -391,7 +301,7 @@
               class="z-50"
               variant="ghost"
               onclick={() => {
-                cloneFormulaDraft(formula as Formula<'DRAFT'>);
+                cloneFormulaDraft(formula);
                 cancelAddNote();
                 builder.reset();
                 open = false;
