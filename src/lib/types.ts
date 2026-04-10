@@ -4,6 +4,7 @@ import type {
   MaterialInstanceType,
   MaterialTargetType
 } from './data/materials.svelte';
+import type { FormulaResult } from './data/formulae.svelte';
 
 // ============================
 // Materials
@@ -71,16 +72,57 @@ export type Formula = {
   materials: FormulaMaterial[];
   notes: FormulaNote[];
   created_at: string;
+  result?: FormulaResult;
 };
 
 export type FormulaType = 'MIXTURE' | 'DRAFT';
 
+/**
+ * Formula material entry.
+ */
 export type FormulaMaterial = {
+  /**
+   * Material/mixture name.
+   */
   name: string;
+
+  /**
+   * Either the material or formula ID of the entry.
+   */
   material_id: number;
-  formula_id: number;
+
+  /**
+   * Formula ID containing this entry. Only null when inserting.
+   */
+  formula_id: number | null;
+
+  /**
+   * Total amount of mass added, includes material + solvent.
+   */
   grams: number;
+
+  /**
+   * Amount of material mass added.
+   */
+  grams_material: number;
+
+  /**
+   * Amount of solvent mass added.
+   */
+  grams_solvent?: number;
+
+  /**
+   * Whether the entry is a material or another formula.
+   */
   type: FormulaMaterialType;
+
+  /**
+   * If the entry is coming from another mixture, this is its ID. Used to group
+   * materials by their origin.
+   */
+  origin: number | null;
+
+  materials?: FormulaMaterial[];
 };
 
 export type FormulaMaterialType = 'MATERIAL' | 'MIXTURE';
@@ -136,11 +178,21 @@ export type MaterialDilutionBuilder = {
 export type FormulaBuilder = {
   name: string;
   description?: string;
-  materials: MaterialSpend[];
-  mixtures: MixtureSpend[];
+  materials: FormulaBuilderEntry[];
   solvent: number;
 
   reset: () => void;
+};
+
+/**
+ * An indirection
+ */
+export type FormulaBuilderEntry = {
+  original?: Material | Formula;
+  name: string;
+  materialId: number;
+  type: FormulaMaterialType;
+  grams: number;
 };
 
 export type MaterialSpend = {
@@ -150,16 +202,20 @@ export type MaterialSpend = {
 
 export type MaterialRestore = {
   target_type: MaterialTargetType;
-  material_id: number;
+  source_id: number;
+  source_type: FormulaMaterialType;
   grams: number;
 };
 
 export type MaterialHistory = {
   id: number;
-  material_id: number;
+  source_id: number;
+  source_name: string;
   target_id: number;
+  target_name: string;
   target_type: MaterialTargetType;
   grams: number;
+  type: FormulaMaterialType;
   created_at: string;
 };
 

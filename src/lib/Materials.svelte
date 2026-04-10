@@ -16,7 +16,7 @@
     history
   }: {
     materialsAbstract: MaterialAbstract[];
-    history: HistoryEntry<'DILUTION'>[];
+    history: HistoryEntry[];
   } = $props();
 
   let display = $state<'full' | 'inventory'>(

@@ -116,7 +116,7 @@
           <span class="text-muted-foreground">Notes</span>
         </div>
 
-        {#each trial.notes as _, i}
+        {#each trial.notes as note, i (note.id)}
           <TrialNote bind:note={trial.notes[i]} />
         {/each}
 

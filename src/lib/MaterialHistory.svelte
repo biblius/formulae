@@ -3,7 +3,7 @@
   import { materials, type HistoryEntry, type MaterialTargetType } from './data/materials.svelte';
   import { df, gf } from './utils';
 
-  let { history }: { history: HistoryEntry<MaterialTargetType>[] } = $props();
+  let { history }: { history: HistoryEntry[] } = $props();
 
   function target(id: number, type: MaterialTargetType) {
     if (type === 'DILUTION') {
@@ -11,10 +11,6 @@
     } else {
       return formulae.get(id);
     }
-  }
-
-  function getMaterialName(id: number) {
-    return materials.get(id)?.name ?? '-';
   }
 
   function getAbstractName(id: number, targetId: number) {
@@ -30,20 +26,8 @@
     return '-';
   }
 
-  const createdAt = (entry: HistoryEntry<MaterialTargetType>) => {
-    const t = target(entry.target_id, entry.target);
-    if (t) {
-      return df.format(new Date(t.created_at));
-    }
-    return '-';
-  };
-
-  const name = (entry: HistoryEntry<MaterialTargetType>) => {
-    const t = target(entry.target_id, entry.target);
-    if (t) {
-      return t.name;
-    }
-    return '-';
+  const createdAt = (entry: HistoryEntry) => {
+    return df.format(new Date(entry.created_at));
   };
 </script>
 
@@ -54,7 +38,7 @@
         class="flex cursor-pointer list-none items-baseline justify-between border-b px-4 py-2 font-semibold"
       >
         <span>
-          Created {name(entry)}
+          Created {entry.target_name}
         </span>
         <span class="text-sm font-normal not-sm:hidden">
           {entry.materials.length}
@@ -88,10 +72,10 @@
                   {getAbstractName(material.id, entry.target_id)}
                 </td>
                 <td class="border-b p-3">
-                  {getMaterialName(material.id)}
+                  {material.name}
                 </td>
                 <td class="border-b p-3">
-                  {name(entry)}
+                  {entry.target_name}
                 </td>
                 <td class="border-b p-3 text-right font-mono">
                   {gf.format(material.grams)}

@@ -53,6 +53,15 @@ pub fn run() {
             sql: include_str!("../../migrations/20260405165519_formula_materials_remove_fk.up.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 8,
+            description: "Rework material history",
+
+            sql: include_str!(
+                "../../migrations/20260409123954_formula_material_history_rework.up.sql"
+            ),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

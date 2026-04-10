@@ -12,6 +12,6 @@
   });
 </script>
 
-<Tooltip.Provider>
+<Tooltip.Provider delayDuration={0.1}>
   {@render children()}
 </Tooltip.Provider>

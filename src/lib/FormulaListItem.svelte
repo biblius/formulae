@@ -1,9 +1,10 @@
 <script lang="ts">
+  import * as Tooltip from '$lib/components/ui/tooltip/index.js';
   import * as Dialog from './components/ui/dialog';
   import { Check, Copy, FlaskRound, SquarePen, Trash, Undo, X } from '@lucide/svelte';
   import { Button, buttonVariants } from '$lib/components/ui/button';
   import {
-    calculateFormula,
+    calculateFormulaBuilder,
     cloneFormulaDraft,
     deleteFormula,
     formulae,
@@ -16,9 +17,10 @@
   import { materials } from './data/materials.svelte';
   import { df, gf, pf } from './utils';
   import FormulaNote from './FormulaNote.svelte';
-  import type { FormulaBuilder as FormulaBuilderState, Formula, FormulaMaterial } from './types';
+  import type { FormulaBuilder as FormulaBuilderState, Formula } from './types';
   import Textarea from './components/Textarea.svelte';
   import FormulaBuilder from './FormulaBuilder.svelte';
+  import Tooltipped from './components/Tooltipped.svelte';
 
   let open = $state<boolean>(false);
   let editing = $state<boolean>(false);
@@ -34,21 +36,6 @@
   }: { formula: Formula; onDraftSpend?: () => void } = $props();
 
   let createdAt = $derived(df.format(new Date(formula.created_at)));
-
-  let exceeded = $derived(
-    formula.materials.filter((material) => {
-      if (material.type === 'MATERIAL') {
-        const available = materials.get(material.material_id)?.grams_available;
-        if (!available) return false;
-        return material.grams > available;
-      }
-      if (material.type === 'MIXTURE') {
-        const available = formulae.get(material.material_id)?.grams_available;
-        if (!available) return false;
-        return material.grams > available;
-      }
-    })
-  );
 
   async function toggleOpen() {
     open = !open;
@@ -81,7 +68,22 @@
   }
 
   let builder = $state<FormulaBuilderState>(toBuilder(formula));
-  let result = $derived(calculateFormula(formula));
+  let result = $derived(calculateFormulaBuilder(toBuilder(formula)));
+
+  let exceeded = $derived(
+    result.entries.filter((material) => {
+      if (material.type === 'MATERIAL') {
+        const available = materials.get(material.id)?.grams_available;
+        if (!available) return false;
+        return material.totalMass > available;
+      }
+      if (material.type === 'MIXTURE') {
+        const available = formulae.get(material.id)?.grams_available;
+        if (!available) return false;
+        return material.totalMass > available;
+      }
+    })
+  );
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -162,31 +164,31 @@
 
             <tbody class="tabular-nums">
               {#each result.entries as material}
-                <tr class="border tabular-nums">
+                <tr class="border text-left tabular-nums">
                   <td class="p-2 pr-2">{material.name}</td>
 
                   <!-- AMOUNT -->
 
                   <td class="p-2 pr-2 tabular-nums">
-                    {gf.format(material.amountGramsFull)}
+                    {gf.format(material.totalMass)}
                   </td>
 
                   <!-- MATERIAL G -->
 
                   <td class="p-2 pr-2">
-                    {gf.format(material.amountGrams)}
+                    {gf.format(material.materialMass)}
                   </td>
 
                   <!-- MATERIAL % -->
 
                   <td class="p-2 pr-2">
-                    {pf.format(material.amountPercent!!)}
+                    {pf.format(material.materialPercent!!)}
                   </td>
 
                   <!-- PPT -->
 
                   <td class="p-2 pr-2">
-                    {material.amountPPT}
+                    {material.materialPPT}
                   </td>
                 </tr>
               {/each}
@@ -196,9 +198,21 @@
               <tr class="border-b text-muted-foreground tabular-nums">
                 <td class="p-2">Solvent</td>
 
-                <td class="p-2">{gf.format(result.addedSolventMass)}</td>
+                <!-- AMOUNT -->
 
-                <td class="p-2">{gf.format(result.materialSolventMass)}</td>
+                <td class="relative p-2">
+                  <Tooltipped text="Solvent mass manually added">
+                    {gf.format(result.addedSolventMass)}
+                  </Tooltipped>
+                </td>
+
+                <!-- MATERIAL G -->
+
+                <td class="p-2">
+                  <Tooltipped text="Solvent mass from materials">
+                    {gf.format(result.materialSolventMass)}
+                  </Tooltipped>
+                </td>
 
                 <!-- MATERIAL % -->
 
@@ -214,21 +228,39 @@
               </tr>
             </tbody>
 
-            <!-- FOOTER -->
+            <!-- TOTAL -->
 
             <tfoot>
               <tr class="p-2 tabular-nums">
                 <td class="p-2 pr-2">Total ({result.totalMaterials} materials)</td>
 
                 <td class="p-2 pr-2 font-bold tabular-nums">
-                  {gf.format(result.totalMass)}
+                  <Tooltipped
+                    text="Total mass ({gf.format(result.materialMass)} materials + {gf.format(
+                      result.addedSolventMass + result.materialSolventMass
+                    )} solvent)"
+                  >
+                    {gf.format(result.totalMass)}
+                  </Tooltipped>
                 </td>
 
-                <td class="p-2 pr-2 font-bold">{gf.format(result.materialMass)}</td>
+                <td class="p-2 pr-2 font-bold">
+                  <Tooltipped text="Total material mass (excluding solvent)">
+                    {gf.format(result.materialMass)}
+                  </Tooltipped>
+                </td>
 
-                <td class="p-2 pr-2 font-bold">{pf.format(result.materialPercent)}</td>
+                <td class="p-2 pr-2 font-bold">
+                  <Tooltipped text="Material percentage of total mass">
+                    {pf.format(result.materialPercent)}
+                  </Tooltipped>
+                </td>
 
-                <td class="p-2 pr-2 text-muted-foreground">1000</td>
+                <td class="p-2 pr-2">
+                  <Tooltipped text="Material parts per thousand of total mass">
+                    {result.materialPPT}
+                  </Tooltipped>
+                </td>
               </tr>
             </tfoot>
           </table>
@@ -241,7 +273,7 @@
             <span class="text-muted-foreground">Notes</span>
           </div>
 
-          {#each formula.notes as _, i}
+          {#each formula.notes as note, i (note.id)}
             <FormulaNote bind:note={formula.notes[i]} />
           {/each}
 
@@ -277,16 +309,19 @@
 
         <div>
           {#if formula.type === 'DRAFT'}
+            <!-- {JSON.stringify(result.entries.length)} -->
+            <!-- {JSON.stringify(exceeded)} -->
             <Button
               class="z-50"
               variant="ghost"
-              disabled={formula.materials.length < 1 || exceeded.length > 0}
+              disabled={result.entries.length < 1 || exceeded.length > 0}
               onclick={() => {
-                onDraftSpend();
                 if (formula.materials.length < 1) {
                   console.warn('no materials');
                   return;
                 }
+
+                onDraftSpend();
 
                 spendFormulaDraft(formula);
                 cancelAddNote();

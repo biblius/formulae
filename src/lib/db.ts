@@ -26,6 +26,10 @@ export async function insertValues(
   for (let i = 0; i < values.length; i++) {
     let insertValues = values[i]
       .map((v) => {
+        if (v == null) {
+          return 'NULL';
+        }
+
         if (typeof v === 'string') {
           return `'${v}'`;
         }

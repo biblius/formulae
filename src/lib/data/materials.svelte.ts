@@ -1,6 +1,8 @@
 import { getLocalTimeZone, now } from '@internationalized/date';
 import { db, insertValues } from '../db';
 import type {
+  FormulaMaterial,
+  FormulaMaterialType,
   Material,
   MaterialAbstract,
   MaterialAbstractBuilder,
@@ -11,11 +13,11 @@ import type {
   MaterialSpend
 } from '../types';
 import { date } from '../utils';
-import { formulae, initFormulae } from './formulae.svelte';
+import { formulae } from './formulae.svelte';
 
 export type MaterialState = {
-  historyD: HistoryEntry<'DILUTION'>[];
-  historyF: HistoryEntry<'FORMULA'>[];
+  historyD: HistoryEntry[];
+  historyF: HistoryEntry[];
 
   /**
    * Gets a material from inventory.
@@ -337,6 +339,10 @@ export async function insertMaterialDilution(state: MaterialDilutionBuilder): Pr
     throw `Not enough material ${state.material!!.id}: ${state.material?.grams_available} / ${state.gramsMaterial}`;
   }
 
+  if (!state.name) {
+    throw `Must have name!`;
+  }
+
   let gramsMaterial = state.gramsMaterial;
 
   if (state.material?.grams_material != null && state.material.grams_solvent != null) {
@@ -374,14 +380,13 @@ export async function insertMaterialDilution(state: MaterialDilutionBuilder): Pr
     ]
   );
 
-  const spend = [{ original: state.material!!, grams: state.gramsMaterial }];
+  const spend = { original: state.material!!, grams: state.gramsMaterial };
+  await spendMaterialDilution(dilutionId!!, state.name ?? '', spend);
 
   const dilution = await getMaterial(dilutionId!!);
 
   indices.abstract[state.material!!.material_id].inventory.push(dilution);
   indices.inventory[dilution.id] = state.material!!.material_id;
-
-  await spendMaterials('DILUTION', dilutionId!!, spend);
 
   return dilution;
 }
@@ -572,50 +577,131 @@ export async function getMaterial(id: number): Promise<Material> {
   return materials[0];
 }
 
-export async function spendMaterials(
-  target: MaterialTargetType,
+export async function spendMaterialDilution(
   targetId: number,
-  m: MaterialSpend[]
+  targetName: string,
+  spend: MaterialSpend
 ) {
-  console.log('spending materials', $state.snapshot(m));
+  console.log('spending materials', $state.snapshot(spend));
+
   const _db = await db();
   const created_at = date(now(getLocalTimeZone()));
 
   await insertValues(
     'material_history',
-    ['material_id', 'target_id', 'target_type', 'grams', 'created_at'],
-    m.map((material) => [material.original.id, targetId, target, material.grams, created_at])
+    [
+      'source_id',
+      'source_name',
+      'target_id',
+      'target_name',
+      'target_type',
+      'type',
+      'grams',
+      'created_at'
+    ],
+    [
+      [
+        spend.original.id,
+        spend.original.name ?? '',
+        targetId,
+        targetName,
+        'DILUTION',
+        'MATERIAL',
+        spend.grams,
+        created_at
+      ]
+    ]
   );
 
-  for (const material of m) {
-    _db.execute(`UPDATE materials SET grams_available = grams_available - $1 WHERE id = $2`, [
+  await _db.execute(`UPDATE materials SET grams_available = grams_available - $1 WHERE id = $2`, [
+    spend.grams,
+    spend.original.id
+  ]);
+
+  const original = materials.get(spend.original.id)!;
+  original.grams_available -= spend.grams;
+
+  const entry: HistoryEntry = {
+    target_id: targetId,
+    target_name: targetName,
+    created_at,
+    materials: [
+      {
+        id: spend.original.id,
+        name: spend.original.name ?? '',
+        grams: spend.grams,
+        type: 'MATERIAL'
+      }
+    ],
+    target: 'DILUTION'
+  };
+
+  materials.historyD.unshift(entry);
+}
+
+export async function spendMaterialsFormula(
+  targetId: number,
+  targetName: string,
+  spend: FormulaMaterial[]
+) {
+  console.log('spending materials', $state.snapshot(spend));
+
+  const _db = await db();
+  const created_at = date(now(getLocalTimeZone()));
+
+  await insertValues(
+    'material_history',
+    [
+      'source_id',
+      'source_name',
+      'target_id',
+      'target_name',
+      'target_type',
+      'type',
+      'grams',
+      'created_at'
+    ],
+    spend.map((material) => [
+      material.material_id,
+      material.name,
+      targetId,
+      targetName,
+      'FORMULA',
+      material.type,
       material.grams,
-      material.original.id
-    ]);
-    material.original.grams_available -= material.grams;
+      created_at
+    ])
+  );
+
+  for (const material of spend) {
+    if (material.type === 'MATERIAL') {
+      await _db.execute(
+        `UPDATE materials SET grams_available = grams_available - $1 WHERE id = $2`,
+        [material.grams, material.material_id]
+      );
+      const original = materials.get(material.material_id)!;
+      original.grams_available -= material.grams;
+    }
+
+    if (material.type === 'MIXTURE') {
+      await _db.execute(
+        `UPDATE formulae SET grams_available = grams_available - $1 WHERE id = $2`,
+        [material.grams, material.material_id]
+      );
+      const original = formulae.get(material.material_id)!;
+      original.grams_available -= material.grams;
+    }
   }
 
-  if (target === 'DILUTION') {
-    const entry: HistoryEntry<'DILUTION'> = m.reduce(
-      (acc: HistoryEntry<'DILUTION'>, el) => {
-        acc.materials.push({ id: el.original.id, grams: el.grams });
-        return acc;
-      },
-      { target, target_id: targetId, materials: [], created_at }
-    );
+  const entry = spend.reduce(
+    (acc: HistoryEntry, el) => {
+      acc.materials.push({ name: el.name, id: el.material_id, grams: el.grams, type: el.type });
+      return acc;
+    },
+    { target_name: targetName, target: 'FORMULA', target_id: targetId, materials: [], created_at }
+  );
 
-    materials.historyD.unshift(entry);
-  } else {
-    const entry: HistoryEntry<'FORMULA'> = m.reduce(
-      (acc: HistoryEntry<'FORMULA'>, el) => {
-        acc.materials.push({ id: el.original.id, grams: el.grams });
-        return acc;
-      },
-      { target, target_id: targetId, materials: [], created_at }
-    );
-
-    materials.historyF.unshift(entry);
-  }
+  materials.historyF.unshift(entry);
 }
 
 export async function restoreMaterials(targetId: number) {
@@ -623,7 +709,12 @@ export async function restoreMaterials(targetId: number) {
 
   const materialsRestore = await _db.select<MaterialRestore[]>(
     `
-    SELECT target_type, material_id, grams FROM material_history
+    SELECT 
+      type as "source_type",
+      target_type,
+      source_id,
+      grams
+    FROM material_history
     WHERE target_id = $1
   `,
     [targetId]
@@ -633,18 +724,34 @@ export async function restoreMaterials(targetId: number) {
 
   console.log('restoring materials', materialsRestore);
 
-  for (const { material_id, grams, target_type } of materialsRestore) {
+  for (const { source_id, source_type, grams, target_type } of materialsRestore) {
     targetType = target_type;
-    await _db.execute(
-      `
-      UPDATE materials 
-      SET grams_available = grams_available + $1
-      WHERE id = $2
-    `,
-      [grams, material_id]
-    );
 
-    materials.get(material_id)!!.grams_available += grams;
+    if (source_type === 'MATERIAL') {
+      await _db.execute(
+        `
+          UPDATE materials 
+          SET grams_available = grams_available + $1
+          WHERE id = $2
+        `,
+        [grams, source_id]
+      );
+
+      materials.get(source_id)!!.grams_available += grams;
+    }
+
+    if (source_type === 'MIXTURE') {
+      await _db.execute(
+        `
+          UPDATE formulae 
+          SET grams_available = grams_available + $1
+          WHERE id = $2
+        `,
+        [grams, source_id]
+      );
+
+      formulae.get(source_id)!!.grams_available += grams;
+    }
   }
 
   console.log('deleting target from history', targetId);
@@ -663,33 +770,50 @@ export async function restoreMaterials(targetId: number) {
   }
 }
 
-export type HistoryEntry<T extends MaterialTargetType> = {
-  target: T;
+export type HistoryEntry = {
+  target: MaterialTargetType;
   target_id: number;
-  materials: { id: number; grams: number }[];
+  target_name: string;
+  materials: { name: string; id: number; grams: number; type: FormulaMaterialType }[];
   created_at: string;
 };
 
-export async function listMaterialHistory<T extends MaterialTargetType>(
-  type: T
-): Promise<HistoryEntry<T>[]> {
+export async function listMaterialHistory(type: MaterialTargetType): Promise<HistoryEntry[]> {
   const _db = await db();
 
   const history: MaterialHistory[] = await _db.select(
-    `SELECT id, material_id, target_id, target_type, grams, created_at FROM material_history WHERE target_type = $1`,
+    `SELECT 
+      id,
+      source_id,
+      source_name,
+      target_id,
+      target_name,
+      target_type,
+      type,
+      grams,
+      created_at 
+    FROM material_history WHERE target_type = $1`,
     [type]
   );
 
-  const out: Record<number, HistoryEntry<T>> = {};
+  const out: Record<number, HistoryEntry> = {};
 
   for (const item of history) {
     if (out[item.target_id]) {
-      out[item.target_id].materials.push({ id: item.material_id, grams: item.grams });
+      out[item.target_id].materials.push({
+        id: item.source_id,
+        name: item.source_name,
+        grams: item.grams,
+        type: item.type
+      });
     } else {
       out[item.target_id] = {
         target: type,
         target_id: item.target_id,
-        materials: [{ id: item.material_id, grams: item.grams }],
+        target_name: item.target_name,
+        materials: [
+          { id: item.source_id, name: item.source_name, grams: item.grams, type: item.type }
+        ],
         created_at: item.created_at
       };
     }

@@ -9,7 +9,7 @@
   import Button from './components/ui/button/button.svelte';
 
   let showHistory = $state(false);
-  let { history }: { history: HistoryEntry<'FORMULA'>[] } = $props();
+  let { history }: { history: HistoryEntry[] } = $props();
 
   let display = $state((localStorage.getItem('lastFormulaDisplay') || undefined) ?? 'DRAFT');
 
