@@ -74,10 +74,6 @@
   }
 </script>
 
-<!-- <div class="whitespace-pre"> -->
-<!--   {JSON.stringify(result, null, 4)} -->
-<!-- </div> -->
-
 <!-- HEADER -->
 
 <div class="mx-4 flex flex-wrap items-center justify-center gap-4 rounded-xl p-2 py-2">
@@ -223,7 +219,7 @@
           <!-- MATERIAL PPT -->
 
           <td class="border p-2 text-center font-bold text-muted-foreground">
-            {result.materialPPT} / 1000
+            <span class="text-foreground">{result.materialPPT}</span> / 1000
           </td>
         </tr>
       </tbody>
@@ -360,3 +356,7 @@
   <Button variant="destructive" onclick={() => onCancel()}>Cancel</Button>
   <Button disabled={!saveEnabled} onclick={() => onSave(formula)}>Save</Button>
 </div>
+
+<!-- <div class="whitespace-pre"> -->
+<!--   {JSON.stringify(result, null, 4)} -->
+<!-- </div> -->

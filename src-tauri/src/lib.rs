@@ -62,6 +62,15 @@ pub fn run() {
             ),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 9,
+            description: "Update grams available",
+
+            sql: include_str!(
+                "../../migrations/20260413164346_update_formula_grams_available.up.sql"
+            ),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()

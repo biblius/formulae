@@ -112,6 +112,11 @@
         <p class="w-full">
           {formula.grams_total} g ({formula.materials.length} materials)
         </p>
+        {#if formula.type === 'MIXTURE'}
+          <p class="w-full">
+            {formula.grams_available} g available
+          </p>
+        {/if}
       </div>
     </div>
   </div>
