@@ -359,6 +359,7 @@ function mixInFormula(formula: Formula, amount: number): FormulaEntry {
 
     const materialParent = materials.get(material.material_id);
     if (materialParent == null) {
+      console.log('missing material!', material.material_id);
       continue;
     }
 
@@ -369,7 +370,7 @@ function mixInFormula(formula: Formula, amount: number): FormulaEntry {
       const ratio = gm / (gm + gs);
 
       const materialGrams = (material.grams / formula.grams_total) * ratio;
-      const solventGrams = material.grams / formula.grams_total - materialGrams / material.grams;
+      const solventGrams = material.grams / formula.grams_total - materialGrams;
 
       const materialAmount = materialGrams * amount;
       const solventAmount = solventGrams * amount;
