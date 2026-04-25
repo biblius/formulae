@@ -1,5 +1,4 @@
 <script lang="ts">
-  import * as Tooltip from '$lib/components/ui/tooltip/index.js';
   import * as Dialog from './components/ui/dialog';
   import { Check, Copy, FlaskRound, SquarePen, Trash, Undo, X } from '@lucide/svelte';
   import { Button, buttonVariants } from '$lib/components/ui/button';
@@ -110,11 +109,11 @@
           {df.format(new Date(formula.created_at))}
         </p>
         <p class="w-full">
-          {formula.grams_total} g ({formula.materials.length} materials)
+          {gf.format(formula.grams_total)} ({formula.materials.length} materials)
         </p>
         {#if formula.type === 'MIXTURE'}
           <p class="w-full">
-            {formula.grams_available} g available
+            {gf.format(formula.grams_available)} available
           </p>
         {/if}
       </div>
@@ -139,8 +138,6 @@
           }
 
           await updateFormula(formula.id, f);
-
-          f.reset();
 
           editing = false;
         }}

@@ -205,7 +205,14 @@ export function toBuilder(formula: Formula): FormulaBuilder {
     }
 
     if (material.type === 'MIXTURE') {
-      entry.original = formulae.get(material.material_id);
+      const formula = formulae.get(material.material_id);
+      if (!formula) {
+        // Create a dummy formula if the original mix used was deleted.
+        // TODO: Make this better by reconstructing it or something...
+        entry.original = {} as Formula;
+        continue;
+      }
+      entry.original = formula;
     }
 
     _materials.push(entry);

@@ -3,12 +3,13 @@
   import { materials } from '$lib/data/materials.svelte';
   import type { FormulaBuilder, FormulaBuilderEntry } from './types';
   import { gf, pf } from './utils';
-  import { Info, ListRestart, Plus, RefreshCw, Undo, X } from '@lucide/svelte';
+  import { Plus, Undo } from '@lucide/svelte';
   import { Input } from './components/ui/input';
   import Textarea from './components/Textarea.svelte';
-  import { calculateFormulaBuilder, formulae, type FormulaEntry } from './data/formulae.svelte';
+  import { calculateFormulaBuilder, formulae } from './data/formulae.svelte';
   import Tooltipped from './components/Tooltipped.svelte';
   import FormulaEntryRow from './FormulaEntryRow.svelte';
+  import InputError from './components/InputError.svelte';
 
   let searching = $state('');
 
@@ -35,8 +36,6 @@
   }: BuilderProps = $props();
 
   let result = $derived(calculateFormulaBuilder(formula));
-
-  let saveEnabled = $derived(formula.name && formula.materials.length > 0);
 
   function addMaterial(material: FormulaBuilderEntry) {
     formula.materials.push(material);
@@ -69,9 +68,11 @@
 
   let addMaterialType: 'material' | 'mixture' = $state('material');
 
-  function entryValue(e: FormulaEntry): string {
-    return formula.materials.find((m) => m.original!.id === e.id)?.grams?.toString() ?? '0';
-  }
+  let errors: number[] = $state([]);
+
+  let saveEnabled = $derived(
+    formula.name && formula.materials.length > 0 && errors.length === 0 && formula.solvent >= 0
+  );
 </script>
 
 <!-- HEADER -->
@@ -90,10 +91,12 @@
   </div>
 </div>
 
-<div class="m-2 flex gap-2 border-t border-b border-muted p-4 not-lg:flex-wrap">
+<div
+  class="m-2 flex max-h-200 gap-2 overflow-scroll border-t border-b border-muted p-4 not-lg:flex-wrap"
+>
   <div>
     <h3 class="pointer-events-none mx-auto text-center text-sm text-muted-foreground">Formula</h3>
-    <table class="mx-auto my-6 w-full border-collapse md:table-fixed">
+    <table class="relative mx-auto my-6 w-full border-collapse md:table-fixed">
       <!-- HEADER ROW -->
 
       <thead class="p-2">
@@ -111,7 +114,7 @@
         <!-- MATERIAL ROWS -->
 
         {#each result.entries as entry (entry.id + entry.type)}
-          <FormulaEntryRow bind:formula {entry} />
+          <FormulaEntryRow bind:errors bind:formula {entry} />
         {/each}
 
         <!-- SOLVENT ROW -->
@@ -145,10 +148,7 @@
               bind:value={formula.solvent}
             ></Input>
             {#if formula.solvent < 0}
-              <div class="mt-1 flex items-center justify-center gap-2 text-xs text-destructive">
-                <Info class="h-4 w-4" />
-                <span>Cannot be negative</span>
-              </div>
+              <InputError message="Cannot be negative" />
             {/if}
           </td>
 
@@ -248,106 +248,100 @@
         >
       </div>
 
-      {#if addMaterialType === 'material'}
-        <div class="mx-auto my-4 w-5/6">
-          <div class="max-h-100 overflow-scroll">
-            <table class="relative mx-auto w-full border-collapse border md:table-fixed">
-              <thead class="sticky top-0 z-10 border">
-                <tr>
-                  <th class="sticky w-1/8 border bg-muted p-2 text-center">Add</th>
-                  <th class="sticky w-1/4 border bg-muted p-2 text-center">Material</th>
-                  <th class="sticky w-1/4 border bg-muted p-2 text-center">Available (g)</th>
+      <div class="mx-auto my-4 max-h-160 w-5/6 overflow-scroll">
+        {#if addMaterialType === 'material'}
+          <table class="relative mx-auto w-full border-collapse border md:table-fixed">
+            <thead class="sticky top-0 z-10 border">
+              <tr>
+                <th class="sticky w-1/8 border bg-muted p-2 text-center">Add</th>
+                <th class="sticky w-1/4 border bg-muted p-2 text-center">Material</th>
+                <th class="sticky w-1/4 border bg-muted p-2 text-center">Available (g)</th>
+              </tr>
+            </thead>
+
+            <tbody class="tabular-nums">
+              {#each materialsDisplay() as material}
+                <!-- MATERIAL ROWS -->
+
+                <tr class:text-muted-foreground={hasMaterial(material.id)} class="relative">
+                  <!-- ACTIONS -->
+
+                  <td class="w-1/8 border p-2 text-center">
+                    <Button
+                      variant="ghost"
+                      disabled={hasMaterial(material.id)}
+                      onclick={() =>
+                        addMaterial({
+                          original: material,
+                          name:
+                            material.name ??
+                            materials.getAbstract(material.material_id)?.name ??
+                            '',
+                          materialId: material.id,
+                          type: 'MATERIAL',
+                          grams: 0
+                        })}
+                    >
+                      <Plus /></Button
+                    >
+                  </td>
+                  <td class="w-1/4 border p-2 text-center wrap-anywhere">
+                    {material.name}
+                  </td>
+
+                  <td class="w-1/4 border p-2 text-center">
+                    {gf.format(material.grams_available)}
+                  </td>
                 </tr>
-              </thead>
+              {/each}
+            </tbody>
+          </table>
+        {:else}
+          <table class="relative mx-auto w-full border-collapse border md:table-fixed">
+            <thead class="sticky top-0 z-10 border">
+              <tr>
+                <th class="sticky w-1/8 border bg-muted p-2 text-center">Add</th>
+                <th class="sticky w-1/4 border bg-muted p-2 text-center">Mixture</th>
+                <th class="sticky w-1/4 border bg-muted p-2 text-center">Available (g)</th>
+              </tr>
+            </thead>
 
-              <tbody class="tabular-nums">
-                {#each materialsDisplay() as material}
-                  <!-- MATERIAL ROWS -->
+            <tbody class="tabular-nums">
+              {#each mixturesDisplay() as mixture}
+                <!-- MATERIAL ROWS -->
 
-                  <tr class:text-muted-foreground={hasMaterial(material.id)} class="relative">
-                    <!-- ACTIONS -->
+                <tr class:text-muted-foreground={hasMaterial(mixture.id)} class="relative">
+                  <!-- ACTIONS -->
 
-                    <td class="w-1/8 border p-2 text-center">
-                      <Button
-                        variant="ghost"
-                        disabled={hasMaterial(material.id)}
-                        onclick={() =>
-                          addMaterial({
-                            original: material,
-                            name:
-                              material.name ??
-                              materials.getAbstract(material.material_id)?.name ??
-                              '',
-                            materialId: material.id,
-                            type: 'MATERIAL',
-                            grams: 0
-                          })}
-                      >
-                        <Plus /></Button
-                      >
-                    </td>
-                    <td class="w-1/4 border p-2 text-center wrap-anywhere">
-                      {material.name}
-                    </td>
+                  <td class="w-1/8 border p-2 text-center">
+                    <Button
+                      variant="ghost"
+                      disabled={hasMaterial(mixture.id)}
+                      onclick={() =>
+                        addMaterial({
+                          original: mixture,
+                          name: mixture.name,
+                          materialId: mixture.id,
+                          type: 'MIXTURE',
+                          grams: 0
+                        })}
+                    >
+                      <Plus /></Button
+                    >
+                  </td>
+                  <td class="w-1/4 border p-2 text-center wrap-anywhere">
+                    {mixture.name}
+                  </td>
 
-                    <td class="w-1/4 border p-2 text-center">
-                      {gf.format(material.grams_available)}
-                    </td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      {:else}
-        <div class="mx-auto my-4 w-5/6">
-          <div class="max-h-100 overflow-scroll">
-            <table class="relative mx-auto w-full border-collapse border md:table-fixed">
-              <thead class="sticky top-0 z-10 border">
-                <tr>
-                  <th class="sticky w-1/8 border bg-muted p-2 text-center">Add</th>
-                  <th class="sticky w-1/4 border bg-muted p-2 text-center">Mixture</th>
-                  <th class="sticky w-1/4 border bg-muted p-2 text-center">Available (g)</th>
+                  <td class="w-1/4 border p-2 text-center">
+                    {gf.format(mixture.grams_available)}
+                  </td>
                 </tr>
-              </thead>
-
-              <tbody class="tabular-nums">
-                {#each mixturesDisplay() as mixture}
-                  <!-- MATERIAL ROWS -->
-
-                  <tr class:text-muted-foreground={hasMaterial(mixture.id)} class="relative">
-                    <!-- ACTIONS -->
-
-                    <td class="w-1/8 border p-2 text-center">
-                      <Button
-                        variant="ghost"
-                        disabled={hasMaterial(mixture.id)}
-                        onclick={() =>
-                          addMaterial({
-                            original: mixture,
-                            name: mixture.name,
-                            materialId: mixture.id,
-                            type: 'MIXTURE',
-                            grams: 0
-                          })}
-                      >
-                        <Plus /></Button
-                      >
-                    </td>
-                    <td class="w-1/4 border p-2 text-center wrap-anywhere">
-                      {mixture.name}
-                    </td>
-
-                    <td class="w-1/4 border p-2 text-center">
-                      {gf.format(mixture.grams_available)}
-                    </td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      {/if}
+              {/each}
+            </tbody>
+          </table>
+        {/if}
+      </div>
     </div>
   </div>
 </div>

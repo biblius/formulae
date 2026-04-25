@@ -6,23 +6,26 @@
   import type { FormulaBuilder, FormulaBuilderEntry } from './types';
   import Self from './FormulaEntryRow.svelte';
   import { ChevronDown, ChevronRight, X } from '@lucide/svelte';
+  import InputError from './components/InputError.svelte';
 
   type Props = {
     formula: FormulaBuilder;
     entry: FormulaEntry;
     level?: number;
+    errors: number[];
   };
 
-  let { formula = $bindable(), entry, level = 0 }: Props = $props();
+  let { formula = $bindable(), entry, level = 0, errors = $bindable() }: Props = $props();
 
-  let state = $state({ expanded: false });
+  let state = $state({
+    expanded: false,
+    entryValue:
+      formula.materials.find((m) => m.original!.id === entry.id)?.grams?.toString() ?? '0',
+    inputError: ''
+  });
 
   let isRoot = $derived(level === 0);
   let canExpand = $derived(entry.entries.length > 0);
-
-  function initialEntryValue(e: FormulaEntry): string {
-    return formula.materials.find((m) => m.original!.id === e.id)?.grams?.toString() ?? '0';
-  }
 </script>
 
 <!-- ROOT MATERIAL -->
@@ -76,16 +79,51 @@
     {#if isRoot}
       <Input
         class="mx-auto w-20"
-        value={initialEntryValue(entry)}
+        bind:value={state.entryValue}
         type="number"
         step="0.1"
-        oninput={(e) => {
-          const material = formula.materials.find((m) => m.materialId === entry.id);
-          if (material) {
-            material.grams = parseFloat(e.currentTarget.value ?? '0');
+        oninput={() => {
+          if (!/^\d*[\.]?\d*$/.test(state.entryValue)) {
+            state.inputError = 'Not a number';
+            errors.push(entry.id);
+            return;
           }
+
+          const material = formula.materials.find((m) => m.materialId === entry.id);
+
+          if (!material) {
+            state.inputError = 'Material no longer exists';
+            errors.push(entry.id);
+            return;
+          }
+
+          if (state.entryValue == null || state.entryValue.length === 0) {
+            material.grams = 0;
+            return;
+          }
+
+          const value = parseFloat(state.entryValue);
+
+          if (isNaN(value)) {
+            state.inputError = 'Not a number';
+            errors.push(entry.id);
+            return;
+          }
+
+          if (value < 0) {
+            state.inputError = 'Cannot be negative';
+            errors.push(entry.id);
+            return;
+          }
+
+          material.grams = value;
+          state.inputError = '';
+          errors = errors.filter((id) => entry.id !== id);
         }}
       ></Input>
+      {#if state.inputError}
+        <InputError message={state.inputError} />
+      {/if}
     {:else}
       {gf.format(entry.totalMass)}
     {/if}
@@ -123,6 +161,6 @@
 
 {#if canExpand && state.expanded}
   {#each entry.entries as childEntry}
-    <Self {formula} entry={childEntry} level={level + 1} />
+    <Self {errors} {formula} entry={childEntry} level={level + 1} />
   {/each}
 {/if}

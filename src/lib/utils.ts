@@ -29,7 +29,7 @@ export const gf = new Intl.NumberFormat('en-US', {
   style: 'unit',
   unit: 'gram',
   unitDisplay: 'short',
-  minimumFractionDigits: 2
+  maximumFractionDigits: 3
 });
 
 /** Percentage formatter */
